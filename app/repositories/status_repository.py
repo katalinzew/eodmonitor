@@ -6,13 +6,15 @@ from psycopg2.extras import Json
 from app.core.database import get_conn
 from app.repositories.event_repository import insert_event
 from app.repositories.history_repository import save_eod_history
+from app.repositories.stores_repository import ensure_store_exists, update_store_schedule
 from app.services.event_service import (
     build_heartbeat_online_event,
+    build_service_events,
     build_status_change_message,
     should_log_status_change,
 )
 from app.services.status_service import calculate_ok_valid_until
-from app.repositories.stores_repository import ensure_store_exists, update_store_schedule
+
 
 def save_status(payload):
     now = dt.datetime.now()
@@ -30,7 +32,10 @@ def save_status(payload):
 
             cur.execute(
                 """
-                SELECT status, COALESCE(heartbeat_state, 'ONLINE'), services_status
+                SELECT
+                    status,
+                    COALESCE(heartbeat_state, 'ONLINE'),
+                    services_status
                 FROM current_status
                 WHERE store_code = %s
                 """,
@@ -40,10 +45,12 @@ def save_status(payload):
             old_row = cur.fetchone()
             old_status = None
             old_heartbeat_state = "ONLINE"
+            old_services = {}
 
             if old_row:
                 old_status = old_row[0]
                 old_heartbeat_state = old_row[1]
+                old_services = old_row[2] or {}
 
             heartbeat_event = build_heartbeat_online_event(old_heartbeat_state)
 
@@ -58,7 +65,12 @@ def save_status(payload):
                     now,
                 )
 
-                update_store_schedule(cur, payload.store_code, payload.schedule_time, now)
+            update_store_schedule(
+                cur,
+                payload.store_code,
+                payload.schedule_time,
+                now,
+            )
 
             cur.execute(
                 """
@@ -164,23 +176,31 @@ def save_status(payload):
                     payload.message,
                     payload.eod_date,
                     payload.eod_file_created_at,
+
                     now,
                     now,
+
                     payload.hostname,
                     payload.agent_version,
                     payload.os_info,
                     payload.uptime_seconds,
+
                     payload.cpu_load_1m,
+
                     payload.ram_total_mb,
                     payload.ram_used_mb,
                     payload.ram_percent,
+
                     payload.disk_total_gb,
                     payload.disk_used_gb,
                     payload.disk_percent,
+
                     ok_valid_until,
+
                     payload.eod_file if payload.status == "OK" else None,
                     payload.eod_date if payload.status == "OK" else None,
                     payload.message if payload.status == "OK" else None,
+
                     "ONLINE",
                     Json(payload.services_status or {}),
                 ),
@@ -196,6 +216,22 @@ def save_status(payload):
                     old_status,
                     payload.status,
                     build_status_change_message(old_status, payload.status),
+                    now,
+                )
+
+            service_events = build_service_events(
+                old_services,
+                payload.services_status or {},
+            )
+
+            for service_event in service_events:
+                insert_event(
+                    cur,
+                    payload.store_code,
+                    service_event["event_type"],
+                    service_event["old_value"],
+                    service_event["new_value"],
+                    service_event["message"],
                     now,
                 )
 
