@@ -50,6 +50,11 @@ def get_store_details(store_code: str):
                 LEFT JOIN stores s
                     ON e.store_code = s.store_code
                 WHERE e.store_code = %s
+                  AND NOT (
+                      e.event_type = 'STATUS_CHANGE'
+                      AND e.old_value = 'OK'
+                      AND e.new_value = 'MISSING'
+                  )
                 ORDER BY e.id DESC
                 LIMIT 100
                 """,
