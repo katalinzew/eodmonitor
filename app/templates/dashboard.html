@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="ro">
+<head>
+    <meta charset="utf-8">
+    <title>EOD Monitor</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/css/app.css">
+</head>
+
+<body>
+<header class="app-header">
+    <div>
+        <div class="brand-title">EOD Monitor</div>
+        <div class="brand-subtitle">Real-time operational dashboard</div>
+    </div>
+
+    <button class="btn" onclick="loadDashboard()">Refresh data</button>
+</header>
+
+<main class="container">
+
+    <section class="summary-grid">
+        <div class="summary-card">
+            <div class="summary-label">Nodes monitored</div>
+            <div class="summary-value" id="totalStores">0</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-label">EOD healthy</div>
+            <div class="summary-value" id="okStores">0</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-label">Incidents</div>
+            <div class="summary-value" id="problemStores">0</div>
+        </div>
+
+        <div class="summary-card">
+            <div class="summary-label">Agents offline</div>
+            <div class="summary-value" id="offlineStores">0</div>
+        </div>
+    </section>
+
+    <section class="panel">
+        <div class="panel-header">
+            <div>
+                <div class="panel-title">Store Fleet Status</div>
+                <div class="small">EOD state, agent heartbeat and system metrics</div>
+            </div>
+
+            <div class="small" id="lastUpdate">Waiting for refresh...</div>
+        </div>
+
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Node</th>
+                        <th>Store</th>
+                        <th>Status</th>
+                        <th>EOD file</th>
+                        <th>Heartbeat</th>
+                        <th>CPU</th>
+                        <th>RAM</th>
+                        <th>Disk</th>
+                    </tr>
+                </thead>
+
+                <tbody id="storesBody">
+                    <tr>
+                        <td colspan="8" class="small">Loading telemetry...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+</main>
+
+<script>
+function fmt(value) {
+    return value === null || value === undefined || value === '' ? '-' : value;
+}
+
+function pct(value) {
+    if (value === null || value === undefined || value === '') return '-';
+    return Number(value).toFixed(1) + '%';
+}
+
+function dateTime(value) {
+    if (!value) return '-';
+
+    const d = new Date(value);
+
+    if (isNaN(d)) return value;
+
+    return d.toLocaleString('ro-RO', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit'
+    });
+}
+
+function statusRank(status) {
+    const ranks = {
+        'OFFLINE': 1,
+        'NO_DATA': 2,
+        'PROBLEM': 3,
+        'MISSING': 4,
+        'LATE': 5,
+        'OK': 9
+    };
+
+    return ranks[status] || 6;
+}
+
+async function loadDashboard() {
+    const res = await fetch('/api/dashboard');
+    const data = await res.json();
+
+    data.sort((a, b) => {
+        const rankDiff = statusRank(a.status) - statusRank(b.status);
+        if (rankDiff !== 0) return rankDiff;
+        return String(a.store_code || '').localeCompare(String(b.store_code || ''));
+    });
+
+    let ok = 0;
+    let problem = 0;
+    let offline = 0;
+    let rows = '';
+
+    data.forEach(x => {
+        const status = x.status || 'NO_DATA';
+
+        if (status === 'OK') {
+            ok++;
+        } else if (status === 'OFFLINE' || status === 'NO_DATA') {
+            offline++;
+        } else {
+            problem++;
+        }
+
+        rows += `
+            <tr>
+                <td><strong>${fmt(x.store_code)}</strong></td>
+                <td>${fmt(x.store_name)}</td>
+                <td><span class="badge ${status}">${status}</span></td>
+                <td>${fmt(x.eod_file)}</td>
+                <td>${dateTime(x.last_heartbeat)}</td>
+                <td>${pct(x.cpu_load_1m)}</td>
+                <td>${pct(x.ram_percent)}</td>
+                <td>${pct(x.disk_percent)}</td>
+            </tr>
+        `;
+    });
+
+    document.getElementById('totalStores').innerText = data.length;
+    document.getElementById('okStores').innerText = ok;
+    document.getElementById('problemStores').innerText = problem;
+    document.getElementById('offlineStores').innerText = offline;
+    document.getElementById('storesBody').innerHTML = rows || '<tr><td colspan="8" class="small">No telemetry data available.</td></tr>';
+    document.getElementById('lastUpdate').innerText = 'Last refresh: ' + dateTime(new Date());
+}
+
+loadDashboard();
+setInterval(loadDashboard, 30000);
+</script>
+
+</body>
+</html>

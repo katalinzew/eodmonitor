@@ -22,6 +22,5 @@ SMTP_CONFIG = {
     "from": "eod-monitor@smartid.ro",
     "to": [
         "SupportSoftware@smartid.ro",
-        "Valentin.SURUGIU@smartid.ro",
     ],
 }
