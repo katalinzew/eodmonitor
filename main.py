@@ -1,7 +1,10 @@
+import asyncio
+
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
 from app.routers import dashboard, health, stores, status
+from app.services.offline_service import offline_monitor_loop
 
 app = FastAPI(title="EOD Monitor API")
 
@@ -11,6 +14,11 @@ app.include_router(dashboard.router)
 app.include_router(health.router)
 app.include_router(stores.router)
 app.include_router(status.router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    asyncio.create_task(offline_monitor_loop())
 
 
 @app.get("/")
