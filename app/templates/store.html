@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ro">
+<head>
+<meta charset="utf-8">
+<title>Store Details</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/static/css/base.css?v=1">
+<link rel="stylesheet" href="/static/css/store.css?v=1">
+</head>
+<body>
+<header class="app-header">
+<div><div class="brand-title">Store Control Panel</div><div class="brand-subtitle"><a href="/dashboard">← Back to dashboard</a></div></div>
+<div class="header-actions">
+<div class="live-pill" id="liveState"><span class="live-dot"></span>Live</div>
+<button class="btn" onclick="loadStore()">Refresh</button>
+</div>
+</header>
+<main class="container">
+<section id="storeContent"><div class="loading-card">Loading store data...</div></section>
+</main>
+<script>const STORE_CODE="__STORE_CODE__";</script>
+<script src="/static/js/store.js?v=1"></script>
+</body></html>
