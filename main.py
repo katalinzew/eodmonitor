@@ -1,13 +1,14 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.routers import dashboard
 from app.core.database import get_conn
-from app.repositories.dashboard_repository import get_dashboard_rows
 
 app = FastAPI(title="EOD Monitor API")
 
 app.mount("/static", StaticFiles(directory="app/static"), name="static")
+
+app.include_router(dashboard.router)
 
 
 @app.get("/")
@@ -17,12 +18,6 @@ def root():
         "status": "running",
         "version": "refactor",
     }
-
-
-@app.get("/dashboard", response_class=HTMLResponse)
-def dashboard_page():
-    with open("app/templates/dashboard.html", "r", encoding="utf-8") as f:
-        return f.read()
 
 
 @app.get("/api/health")
@@ -44,8 +39,3 @@ def health():
             "database": "error",
             "error": str(e),
         }
-
-
-@app.get("/api/dashboard")
-def dashboard_data():
-    return get_dashboard_rows()
