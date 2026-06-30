@@ -12,7 +12,7 @@ from app.services.event_service import (
     should_log_status_change,
 )
 from app.services.status_service import calculate_ok_valid_until
-
+from app.repositories.stores_repository import ensure_store_exists, update_store_schedule
 
 def save_status(payload):
     now = dt.datetime.now()
@@ -25,16 +25,7 @@ def save_status(payload):
 
     with get_conn() as conn:
         with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT store_code
-                FROM stores
-                WHERE store_code = %s
-                """,
-                (payload.store_code,),
-            )
-
-            if cur.fetchone() is None:
+            if not ensure_store_exists(cur, payload.store_code):
                 raise HTTPException(status_code=404, detail="Store not found in database")
 
             cur.execute(
@@ -67,20 +58,7 @@ def save_status(payload):
                     now,
                 )
 
-            if payload.schedule_time:
-                cur.execute(
-                    """
-                    UPDATE stores
-                    SET schedule_time = %s,
-                        updated_at = %s
-                    WHERE store_code = %s
-                    """,
-                    (
-                        payload.schedule_time,
-                        now,
-                        payload.store_code,
-                    ),
-                )
+                update_store_schedule(cur, payload.store_code, payload.schedule_time, now)
 
             cur.execute(
                 """
