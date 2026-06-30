@@ -1,12 +1,17 @@
 import datetime as dt
 
-from psycopg2.extras import Json
 from fastapi import HTTPException
+from psycopg2.extras import Json
 
 from app.core.database import get_conn
-from app.services.status_service import calculate_ok_valid_until
 from app.repositories.event_repository import insert_event
 from app.repositories.history_repository import save_eod_history
+from app.services.event_service import (
+    build_heartbeat_online_event,
+    build_status_change_message,
+    should_log_status_change,
+)
+from app.services.status_service import calculate_ok_valid_until
 
 
 def save_status(payload):
@@ -49,14 +54,16 @@ def save_status(payload):
                 old_status = old_row[0]
                 old_heartbeat_state = old_row[1]
 
-            if old_heartbeat_state == "OFFLINE":
+            heartbeat_event = build_heartbeat_online_event(old_heartbeat_state)
+
+            if heartbeat_event:
                 insert_event(
                     cur,
                     payload.store_code,
-                    "HEARTBEAT_ONLINE",
-                    "OFFLINE",
-                    "ONLINE",
-                    "Agentul a revenit online.",
+                    heartbeat_event["event_type"],
+                    heartbeat_event["old_value"],
+                    heartbeat_event["new_value"],
+                    heartbeat_event["message"],
                     now,
                 )
 
@@ -179,31 +186,23 @@ def save_status(payload):
                     payload.message,
                     payload.eod_date,
                     payload.eod_file_created_at,
-
                     now,
                     now,
-
                     payload.hostname,
                     payload.agent_version,
                     payload.os_info,
                     payload.uptime_seconds,
-
                     payload.cpu_load_1m,
-
                     payload.ram_total_mb,
                     payload.ram_used_mb,
                     payload.ram_percent,
-
                     payload.disk_total_gb,
                     payload.disk_used_gb,
                     payload.disk_percent,
-
                     ok_valid_until,
-
                     payload.eod_file if payload.status == "OK" else None,
                     payload.eod_date if payload.status == "OK" else None,
                     payload.message if payload.status == "OK" else None,
-
                     "ONLINE",
                     Json(payload.services_status or {}),
                 ),
@@ -211,17 +210,16 @@ def save_status(payload):
 
             save_eod_history(cur, payload, now)
 
-            if old_status != payload.status:
-                if not (old_status == "OK" and payload.status == "MISSING"):
-                    insert_event(
-                        cur,
-                        payload.store_code,
-                        "STATUS_CHANGE",
-                        old_status,
-                        payload.status,
-                        f"Status EOD schimbat: {old_status} -> {payload.status}",
-                        now,
-                    )
+            if should_log_status_change(old_status, payload.status):
+                insert_event(
+                    cur,
+                    payload.store_code,
+                    "STATUS_CHANGE",
+                    old_status,
+                    payload.status,
+                    build_status_change_message(old_status, payload.status),
+                    now,
+                )
 
     return {
         "ok": True,
