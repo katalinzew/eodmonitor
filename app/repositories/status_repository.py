@@ -5,65 +5,8 @@ from fastapi import HTTPException
 
 from app.core.database import get_conn
 from app.services.status_service import calculate_ok_valid_until
-
-
-def save_eod_history(cur, payload, received_at):
-    if not payload.eod_date or not payload.eod_file:
-        return
-
-    cur.execute(
-        """
-        INSERT INTO eod_history (
-            store_code,
-            eod_date,
-            status,
-            eod_file,
-            message,
-            eod_file_created_at,
-            received_at
-        )
-        VALUES (%s, %s, %s, %s, %s, %s, %s)
-        ON CONFLICT (store_code, eod_date, COALESCE(eod_file, ''))
-        DO UPDATE SET
-            status = EXCLUDED.status,
-            message = EXCLUDED.message,
-            eod_file_created_at = EXCLUDED.eod_file_created_at,
-            received_at = EXCLUDED.received_at
-        """,
-        (
-            payload.store_code,
-            payload.eod_date,
-            payload.status,
-            payload.eod_file,
-            payload.message,
-            payload.eod_file_created_at,
-            received_at,
-        ),
-    )
-
-
-def insert_event(cur, store_code, event_type, old_value, new_value, message, created_at):
-    cur.execute(
-        """
-        INSERT INTO event_log (
-            store_code,
-            event_type,
-            old_value,
-            new_value,
-            message,
-            created_at
-        )
-        VALUES (%s, %s, %s, %s, %s, %s)
-        """,
-        (
-            store_code,
-            event_type,
-            old_value,
-            new_value,
-            message,
-            created_at,
-        ),
-    )
+from app.repositories.event_repository import insert_event
+from app.repositories.history_repository import save_eod_history
 
 
 def save_status(payload):
