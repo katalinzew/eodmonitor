@@ -1,0 +1,1 @@
+{"received_at": "2026-05-20T16:55:26", "data": {"store_code": "TEST001", "status": "OK", "message": "Salut de pe Linux"}}
