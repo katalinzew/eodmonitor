@@ -3,6 +3,7 @@ from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.core.database import get_conn
+from app.repositories.dashboard_repository import get_dashboard_rows
 
 app = FastAPI(title="EOD Monitor API")
 
@@ -47,4 +48,4 @@ def health():
 
 @app.get("/api/dashboard")
 def dashboard_data():
-    return []
+    return get_dashboard_rows()
