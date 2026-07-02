@@ -250,6 +250,8 @@ def save_status(payload):
                 "ONLINE",
                 effective_status,
                 now,
+                ram_percent=payload.ram_percent,
+                disk_percent=payload.disk_percent,
             )
 
     return {

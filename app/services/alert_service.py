@@ -6,9 +6,14 @@ from app.repositories.alert_repository import (
 AGENT_OFFLINE = "AGENT_OFFLINE"
 EOD_MISSING = "EOD_MISSING"
 SERVICE_DOWN = "SERVICE_DOWN"
+HEALTH_WARNING = "HEALTH_WARNING"
 
 TARGET_HEARTBEAT = "HEARTBEAT"
 TARGET_EOD = "EOD"
+TARGET_RAM = "RAM"
+TARGET_DISK = "DISK"
+
+HEALTH_LIMIT_PERCENT = 90
 
 
 def register_alert(cur, store_code, alert_type, target, seen_at):
@@ -97,6 +102,42 @@ def process_eod_alerts(cur, store_code, effective_status, now):
         )
 
 
+def process_health_alerts(cur, store_code, ram_percent, disk_percent, now):
+    if ram_percent is not None and float(ram_percent) >= HEALTH_LIMIT_PERCENT:
+        register_alert(
+            cur,
+            store_code,
+            HEALTH_WARNING,
+            TARGET_RAM,
+            now,
+        )
+    else:
+        resolve_existing_alert(
+            cur,
+            store_code,
+            HEALTH_WARNING,
+            TARGET_RAM,
+            now,
+        )
+
+    if disk_percent is not None and float(disk_percent) >= HEALTH_LIMIT_PERCENT:
+        register_alert(
+            cur,
+            store_code,
+            HEALTH_WARNING,
+            TARGET_DISK,
+            now,
+        )
+    else:
+        resolve_existing_alert(
+            cur,
+            store_code,
+            HEALTH_WARNING,
+            TARGET_DISK,
+            now,
+        )
+
+
 def process_alerts(
     cur,
     store_code,
@@ -105,6 +146,8 @@ def process_alerts(
     heartbeat_state,
     effective_status,
     now,
+    ram_percent=None,
+    disk_percent=None,
 ):
     process_service_alerts(
         cur,
@@ -125,5 +168,13 @@ def process_alerts(
         cur,
         store_code,
         effective_status,
+        now,
+    )
+
+    process_health_alerts(
+        cur,
+        store_code,
+        ram_percent,
+        disk_percent,
         now,
     )

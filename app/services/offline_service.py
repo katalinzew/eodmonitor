@@ -59,6 +59,8 @@ def check_offline_agents_once():
                     "OFFLINE",
                     "OK",
                     now,
+                    ram_percent=None,
+                    disk_percent=None,
                 )
 
     return len(rows)

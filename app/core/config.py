@@ -22,6 +22,6 @@ SMTP_CONFIG = {
     "use_tls": True,
     "from": "eod-monitor@smartid.ro",
     "to": [
-        "SupportSoftware@smartid.ro",
+        "Catalin.GHERCIOIU@smartid.ro",
     ],
 }
