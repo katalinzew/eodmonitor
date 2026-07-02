@@ -4,6 +4,7 @@ import datetime as dt
 from app.core.config import OFFLINE_AFTER_MINUTES, OFFLINE_CHECK_INTERVAL_SECONDS
 from app.core.database import get_conn
 from app.repositories.event_repository import insert_event
+from app.services.alert_service import process_alerts
 
 
 def check_offline_agents_once():
@@ -47,6 +48,16 @@ def check_offline_agents_once():
                     "ONLINE",
                     "OFFLINE",
                     f"Agentul nu a mai trimis heartbeat de peste {OFFLINE_AFTER_MINUTES} minute.",
+                    now,
+                )
+
+                process_alerts(
+                    cur,
+                    store_code,
+                    {},
+                    {},
+                    "OFFLINE",
+                    "OK",
                     now,
                 )
 

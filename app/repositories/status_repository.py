@@ -7,13 +7,17 @@ from app.core.database import get_conn
 from app.repositories.event_repository import insert_event
 from app.repositories.history_repository import save_eod_history
 from app.repositories.stores_repository import ensure_store_exists, update_store_schedule
+from app.services.alert_service import process_alerts
 from app.services.event_service import (
     build_heartbeat_online_event,
     build_service_events,
     build_status_change_message,
     should_log_status_change,
 )
-from app.services.status_service import calculate_ok_valid_until
+from app.services.status_service import (
+    calculate_ok_valid_until,
+    get_effective_eod_status,
+)
 
 
 def save_status(payload):
@@ -35,7 +39,8 @@ def save_status(payload):
                 SELECT
                     status,
                     COALESCE(heartbeat_state, 'ONLINE'),
-                    services_status
+                    services_status,
+                    ok_valid_until
                 FROM current_status
                 WHERE store_code = %s
                 """,
@@ -46,11 +51,13 @@ def save_status(payload):
             old_status = None
             old_heartbeat_state = "ONLINE"
             old_services = {}
+            old_ok_valid_until = None
 
             if old_row:
                 old_status = old_row[0]
                 old_heartbeat_state = old_row[1]
                 old_services = old_row[2] or {}
+                old_ok_valid_until = old_row[3]
 
             heartbeat_event = build_heartbeat_online_event(old_heartbeat_state)
 
@@ -176,31 +183,23 @@ def save_status(payload):
                     payload.message,
                     payload.eod_date,
                     payload.eod_file_created_at,
-
                     now,
                     now,
-
                     payload.hostname,
                     payload.agent_version,
                     payload.os_info,
                     payload.uptime_seconds,
-
                     payload.cpu_load_1m,
-
                     payload.ram_total_mb,
                     payload.ram_used_mb,
                     payload.ram_percent,
-
                     payload.disk_total_gb,
                     payload.disk_used_gb,
                     payload.disk_percent,
-
                     ok_valid_until,
-
                     payload.eod_file if payload.status == "OK" else None,
                     payload.eod_date if payload.status == "OK" else None,
                     payload.message if payload.status == "OK" else None,
-
                     "ONLINE",
                     Json(payload.services_status or {}),
                 ),
@@ -234,6 +233,24 @@ def save_status(payload):
                     service_event["message"],
                     now,
                 )
+
+            effective_ok_valid_until = ok_valid_until or old_ok_valid_until
+
+            effective_status = get_effective_eod_status(
+                payload.status,
+                effective_ok_valid_until,
+                now,
+            )
+
+            process_alerts(
+                cur,
+                payload.store_code,
+                old_services,
+                payload.services_status or {},
+                "ONLINE",
+                effective_status,
+                now,
+            )
 
     return {
         "ok": True,
