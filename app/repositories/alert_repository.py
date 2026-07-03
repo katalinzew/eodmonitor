@@ -45,6 +45,7 @@ def create_alert(cur, store_code, alert_type, target, seen_at):
             resolved_at
         )
         VALUES (%s, %s, %s, %s, %s, false, NULL, false, NULL)
+        RETURNING id
         """,
         (
             store_code,
@@ -54,6 +55,9 @@ def create_alert(cur, store_code, alert_type, target, seen_at):
             seen_at,
         ),
     )
+
+    row = cur.fetchone()
+    return row[0] if row else None
 
 
 def touch_alert(cur, alert_id, seen_at):
@@ -78,15 +82,13 @@ def upsert_active_alert(cur, store_code, alert_type, target, seen_at):
         touch_alert(cur, alert_id, seen_at)
         return alert_id
 
-    create_alert(
+    return create_alert(
         cur,
         store_code,
         alert_type,
         target,
         seen_at,
     )
-
-    return None
 
 
 def resolve_alert(cur, store_code, alert_type, target, resolved_at):
@@ -124,3 +126,29 @@ def mark_email_sent(cur, alert_id, sent_at):
             alert_id,
         ),
     )
+
+
+def get_pending_email_alerts(cur):
+    cur.execute(
+        """
+        SELECT
+            a.id,
+            a.store_code,
+            s.store_name,
+            s.host,
+            s.schedule_time,
+            a.alert_type,
+            a.target,
+            a.first_seen_at,
+            a.last_seen_at,
+            a.email_sent
+        FROM alert_state a
+        LEFT JOIN stores s
+            ON s.store_code = a.store_code
+        WHERE a.resolved = false
+          AND a.email_sent = false
+        ORDER BY a.first_seen_at ASC
+        """
+    )
+
+    return cur.fetchall()
