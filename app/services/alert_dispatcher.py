@@ -63,7 +63,7 @@ def build_alert_email(alert):
     subject = f"[EOD Monitor] {alert_type} - {store_code} - {target}"
 
     text_body = (
-        f"Alertă EOD Monitor\n\n"
+        f"EOD Monitor Alert\n\n"
         f"Magazin: {store_code} - {store_name}\n"
         f"Host: {host}\n"
         f"Tip alertă: {alert_type}\n"
@@ -74,51 +74,85 @@ def build_alert_email(alert):
 
     html_body = f"""
     <html>
-        <body style="font-family: Arial, sans-serif; background:#f6f8fb; padding:20px;">
-            <div style="max-width:720px; margin:auto; background:#ffffff; border-radius:12px; padding:24px; border:1px solid #e5e7eb;">
-                <h2 style="margin-top:0; color:#111827;">EOD Monitor Alert</h2>
+    <body style="margin:0;padding:0;background:#070b14;font-family:Arial,sans-serif;color:#e5eefb;">
+        <div style="max-width:640px;margin:0 auto;padding:18px;
+            background:radial-gradient(circle at top left, rgba(34,211,238,.18), transparent 35%),
+                       radial-gradient(circle at top right, rgba(59,130,246,.16), transparent 35%),
+                       linear-gradient(135deg,#020617,#07111f);">
 
-                <p style="font-size:15px; color:#374151;">
-                    A fost detectată o problemă care persistă de cel puțin {ALERT_DELAY_MINUTES} minute.
-                </p>
+            <div style="background:rgba(15,23,42,.92);border:1px solid rgba(148,163,184,.18);
+                border-radius:18px;overflow:hidden;box-shadow:0 22px 60px rgba(0,0,0,.45);">
 
-                <table style="width:100%; border-collapse:collapse; margin-top:18px;">
-                    <tr>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;"><b>Magazin</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;">{store_code} - {store_name}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;"><b>Host</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;">{host}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;"><b>Tip alertă</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;">{alert_type}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;"><b>Target</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;">{target}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;"><b>Prima apariție</b></td>
-                        <td style="padding:8px; border-bottom:1px solid #e5e7eb;">{first_seen_at}</td>
-                    </tr>
-                    <tr>
-                        <td style="padding:8px;"><b>Ultima confirmare</b></td>
-                        <td style="padding:8px;">{last_seen_at}</td>
-                    </tr>
-                </table>
+                <div style="padding:18px 22px;border-bottom:1px solid rgba(148,163,184,.18);
+                    background:linear-gradient(135deg,rgba(34,211,238,.12),transparent 45%);">
+                    <div style="font-size:22px;font-weight:900;color:#ffffff;">
+                        EOD Monitor
+                    </div>
+                    <div style="font-size:13px;color:#94a3b8;margin-top:3px;">
+                        Sistem monitorizare magazine
+                    </div>
+                </div>
 
-                <p style="font-size:12px; color:#6b7280; margin-top:22px;">
-                    Email generat automat de EOD Monitor.
-                </p>
+                <div style="padding:22px;">
+                    <div style="display:inline-block;padding:6px 11px;border-radius:999px;
+                        background:rgba(239,68,68,.14);border:1px solid rgba(239,68,68,.35);
+                        color:#fecaca;font-size:11px;font-weight:900;">
+                        ALERTĂ ACTIVĂ
+                    </div>
+
+                    <h2 style="margin:16px 0 6px;font-size:24px;color:#ffffff;">
+                        {alert_type}
+                    </h2>
+
+                    <p style="margin:0 0 18px;color:#cbd5e1;font-size:14px;">
+                        Problema persistă de cel puțin {ALERT_DELAY_MINUTES} minute.
+                    </p>
+
+                    <table style="width:100%;border-collapse:collapse;background:rgba(2,6,23,.55);
+                        border:1px solid rgba(148,163,184,.16);border-radius:14px;overflow:hidden;font-size:13px;">
+                        <tr>
+                            <td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid rgba(148,163,184,.14);width:38%;">Magazin</td>
+                            <td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid rgba(148,163,184,.14);">{store_code} - {store_name}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid rgba(148,163,184,.14);">Host</td>
+                            <td style="padding:11px 13px;color:#e0f2fe;font-weight:800;border-bottom:1px solid rgba(148,163,184,.14);">{host}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid rgba(148,163,184,.14);">Tip alertă</td>
+                            <td style="padding:11px 13px;color:#fecaca;font-weight:900;border-bottom:1px solid rgba(148,163,184,.14);">{alert_type}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid rgba(148,163,184,.14);">Target</td>
+                            <td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid rgba(148,163,184,.14);">{target}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid rgba(148,163,184,.14);">Prima apariție</td>
+                            <td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid rgba(148,163,184,.14);">{first_seen_at}</td>
+                        </tr>
+                        <tr>
+                            <td style="padding:11px 13px;color:#94a3b8;">Ultima confirmare</td>
+                            <td style="padding:11px 13px;color:#ffffff;font-weight:800;">{last_seen_at}</td>
+                        </tr>
+                    </table>
+
+                    <div style="margin-top:16px;padding:12px 14px;border-radius:14px;
+                        background:rgba(8,145,178,.16);border:1px solid rgba(34,211,238,.35);
+                        color:#bae6fd;font-size:12px;">
+                        Email generat automat de EOD Monitor. Nu este necesar reply.
+                    </div>
+                </div>
             </div>
-        </body>
+
+            <div style="text-align:center;color:#64748b;font-size:11px;margin-top:12px;">
+                EOD Monitor · Operational Alerting
+            </div>
+        </div>
+    </body>
     </html>
     """
 
     return subject, html_body, text_body
-
 
 def dispatch_alert_emails_once():
     now = dt.datetime.now()
@@ -146,6 +180,44 @@ def dispatch_alert_emails_once():
 
     return sent_count
 
+def send_alert_now(alert_id):
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT
+                    a.id,
+                    a.store_code,
+                    s.store_name,
+                    s.host,
+                    s.schedule_time,
+                    a.alert_type,
+                    a.target,
+                    a.first_seen_at,
+                    a.last_seen_at,
+                    a.email_sent
+                FROM alert_state a
+                LEFT JOIN stores s
+                    ON s.store_code = a.store_code
+                WHERE a.id = %s
+                """,
+                (alert_id,),
+            )
+
+            alert = cur.fetchone()
+
+            if not alert:
+                return False
+
+            subject, html_body, text_body = build_alert_email(alert)
+
+            send_email(
+                subject=subject,
+                html_body=html_body,
+                text_body=text_body,
+            )
+
+            return True
 
 async def alert_dispatcher_loop():
     while True:
