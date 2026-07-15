@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ro">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Store Management · EOD Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/base.css?v=10">
+    <link rel="stylesheet" href="/static/css/stores.css?v=10">
+</head>
+<body>
+<header class="stores-header">
+    <a class="stores-brand" href="/dashboard"><span class="brand-mark">E</span><span><strong>EOD Command Center</strong><small>Monitorizare operațională magazine</small></span></a>
+    <nav class="stores-nav" aria-label="Navigare principală"><a class="nav-link" href="/dashboard">Dashboard</a><a class="nav-link active" href="/stores">Stores</a><a class="nav-link" href="/alerts">Alerts <span class="nav-count" id="navAlertCount">0</span></a></nav>
+    <div class="header-status"><div class="refresh-meta"><span>Ultima actualizare</span><strong id="lastUpdate">-</strong></div><button class="refresh-btn" id="refreshButton" type="button">Refresh</button><div class="live-pill" id="liveState"><span class="live-dot"></span>Live</div></div>
+</header>
+<main class="stores-container">
+    <section class="titlebar"><div><h1>Store Management</h1><span>Manage monitored stores</span></div><span id="resultCount">0 stores</span></section>
+    <section class="kpi-grid" aria-label="Rezumat magazine"><article><span>Total Stores</span><strong id="totalStores">0</strong></article><article class="active"><span>Active Stores</span><strong id="activeStores">0</strong></article><article class="inactive"><span>Inactive Stores</span><strong id="inactiveStores">0</strong></article><article class="schedule"><span>Schedules Configured</span><strong id="scheduledStores">0</strong></article></section>
+    <section class="stores-toolbar"><label class="search-box"><span class="search-icon">⌕</span><input id="searchInput" type="search" placeholder="Caută după cod, nume, host sau hostname..."></label><div class="filter-group" role="group" aria-label="Status magazin"><button class="active" type="button" data-filter="ALL">All</button><button type="button" data-filter="ACTIVE">Active</button><button type="button" data-filter="INACTIVE">Inactive</button></div><button class="add-button" id="addStoreButton" type="button">+ Add Store</button></section>
+    <section class="stores-card"><div class="table-wrap"><table><thead><tr><th>Store Code</th><th>Store Name</th><th>Host</th><th>Hostname</th><th>Schedule</th><th>Status</th><th>Created</th><th>Actions</th></tr></thead><tbody id="storesTable"><tr><td class="table-message" colspan="8">Se încarcă magazinele...</td></tr></tbody></table></div></section>
+</main>
+<dialog class="store-modal" id="storeModal">
+    <form id="storeForm" method="dialog"><header><div><strong id="modalTitle">Add Store</strong><small id="modalSubtitle">Configurează un magazin monitorizat</small></div><button class="close-button" id="closeModalButton" type="button" aria-label="Închide">×</button></header><div class="form-grid">
+        <label><span>Store Code *</span><input id="storeCode" name="store_code" required autocomplete="off"></label><label><span>Store Name</span><input id="storeName" name="store_name" autocomplete="off"></label><label><span>Host *</span><input id="storeHost" name="host" required autocomplete="off"></label><label><span>Schedule</span><input id="storeSchedule" name="schedule_time" type="time"></label><label class="active-field"><input id="storeActive" name="active" type="checkbox" checked><span>Store active</span></label>
+    </div><p class="form-error" id="formError" role="alert"></p><footer><button class="secondary-button" id="cancelButton" type="button">Cancel</button><button class="save-button" id="saveButton" type="submit">Save Store</button></footer></form>
+</dialog>
+<script src="/static/js/stores.js?v=10"></script>
+</body>
+</html>
