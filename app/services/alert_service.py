@@ -2,6 +2,7 @@ from app.repositories.alert_repository import (
     resolve_alert,
     upsert_active_alert,
 )
+from app.services.status_service import is_eod_alert_due
 
 AGENT_OFFLINE = "AGENT_OFFLINE"
 EOD_MISSING = "EOD_MISSING"
@@ -82,8 +83,11 @@ def process_agent_alerts(cur, store_code, heartbeat_state, now):
         )
 
 
-def process_eod_alerts(cur, store_code, effective_status, now):
+def process_eod_alerts(cur, store_code, effective_status, now, schedule_time=None):
     if effective_status in ("MISSING", "LATE", "PROBLEM"):
+        if not is_eod_alert_due(schedule_time, now):
+            return
+
         register_alert(
             cur,
             store_code,
@@ -148,6 +152,7 @@ def process_alerts(
     now,
     ram_percent=None,
     disk_percent=None,
+    schedule_time=None,
 ):
     process_service_alerts(
         cur,
@@ -169,6 +174,7 @@ def process_alerts(
         store_code,
         effective_status,
         now,
+        schedule_time,
     )
 
     process_health_alerts(

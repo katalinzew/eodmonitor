@@ -31,6 +31,29 @@ def calculate_ok_valid_until(status, eod_file, eod_file_created_at):
     return file_dt + dt.timedelta(hours=OK_VALID_HOURS)
 
 
+def get_eod_alert_due_at(schedule_time, now=None):
+    if now is None:
+        now = dt.datetime.now()
+
+    if not schedule_time:
+        return None
+
+    try:
+        schedule = dt.datetime.strptime(str(schedule_time), "%H:%M").time()
+    except (TypeError, ValueError):
+        return None
+
+    return dt.datetime.combine(now.date(), schedule)
+
+
+def is_eod_alert_due(schedule_time, now=None):
+    if now is None:
+        now = dt.datetime.now()
+
+    due_at = get_eod_alert_due_at(schedule_time, now)
+    return due_at is None or now >= due_at
+
+
 def is_eod_ttl_valid(ok_valid_until, now=None):
     if now is None:
         now = dt.datetime.now()

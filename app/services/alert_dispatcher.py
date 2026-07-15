@@ -8,6 +8,7 @@ from app.repositories.alert_repository import (
     mark_email_sent,
 )
 from app.services.mail_service import send_email
+from app.services.status_service import get_eod_alert_due_at, is_eod_alert_due
 
 
 ALERT_DISPATCH_INTERVAL_SECONDS = 60
@@ -41,7 +42,15 @@ def should_send_alert_email(alert, now):
         if first_seen_at.date() != now.date():
             return False
 
-        return is_old_enough(first_seen_at, now)
+        if not is_eod_alert_due(schedule_time, now):
+            return False
+
+        schedule_due_at = get_eod_alert_due_at(schedule_time, now)
+        email_delay_started_at = max(
+            first_seen_at,
+            schedule_due_at or first_seen_at,
+        )
+        return is_old_enough(email_delay_started_at, now)
 
     return False
 

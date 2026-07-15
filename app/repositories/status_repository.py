@@ -36,6 +36,17 @@ def save_status(payload):
 
             cur.execute(
                 """
+                SELECT schedule_time
+                FROM stores
+                WHERE store_code = %s
+                """,
+                (payload.store_code,),
+            )
+            store_schedule_row = cur.fetchone()
+            stored_schedule_time = store_schedule_row[0] if store_schedule_row else None
+
+            cur.execute(
+                """
                 SELECT
                     status,
                     COALESCE(heartbeat_state, 'ONLINE'),
@@ -252,6 +263,7 @@ def save_status(payload):
                 now,
                 ram_percent=payload.ram_percent,
                 disk_percent=payload.disk_percent,
+                schedule_time=payload.schedule_time or stored_schedule_time,
             )
 
     return {
