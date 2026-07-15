@@ -1,25 +1,34 @@
 <!doctype html>
 <html lang="ro">
 <head>
-<meta charset="utf-8">
-<title>Store Details</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/base.css?v=1">
-<link rel="stylesheet" href="/static/css/store.css?v=1">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Store Details · EOD Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/base.css?v=7">
+    <link rel="stylesheet" href="/static/css/store.css?v=7">
 </head>
 <body>
 <header class="app-header">
-<div><div class="brand-title">Store Control Panel</div><div class="brand-subtitle"><a href="/dashboard">← Back to dashboard</a></div></div>
-<div class="header-actions">
-<div class="live-pill" id="liveState"><span class="live-dot"></span>Live</div>
-<button class="btn" onclick="loadStore()">Refresh</button>
-</div>
+    <a class="app-brand" href="/dashboard">
+        <span class="brand-mark">E</span>
+        <span><strong>EOD Command Center</strong><small>Store details</small></span>
+    </a>
+    <nav class="app-nav" aria-label="Navigare principală">
+        <a class="nav-link active" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/alerts">Alerts</a>
+    </nav>
+    <div class="header-actions">
+        <span class="refresh-meta">Actualizat <strong id="lastUpdate">-</strong></span>
+        <button class="refresh-btn" type="button" onclick="loadStore()">Refresh</button>
+        <div class="live-pill" id="liveState"><span class="live-dot"></span>Live</div>
+    </div>
 </header>
-<main class="container">
-<section id="storeContent"><div class="loading-card">Loading store data...</div></section>
+<main class="page-container" id="storePage" data-store-code="__STORE_CODE__">
+    <section id="storeContent"><div class="loading-card">Se încarcă datele magazinului...</div></section>
 </main>
-<script>const STORE_CODE="__STORE_CODE__";</script>
-<script src="/static/js/store.js?v=1"></script>
-</body></html>
+<script src="/static/js/store.js?v=7"></script>
+</body>
+</html>

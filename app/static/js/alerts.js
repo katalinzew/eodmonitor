@@ -1,156 +1,17 @@
-function fmt(value) {
-    return value === null || value === undefined || value === '' ? '-' : value;
-}
-
-function dateTime(value) {
-    if (!value) return '-';
-
-    const d = new Date(value);
-
-    if (isNaN(d)) {
-        return value;
-    }
-
-    return d.toLocaleString('ro-RO');
-}
-
-function durationFrom(value, resolvedAt) {
-    if (!value) return '-';
-
-    const start = new Date(value);
-    const end = resolvedAt ? new Date(resolvedAt) : new Date();
-
-    if (isNaN(start) || isNaN(end)) return '-';
-
-    const diffMs = Math.max(0, end - start);
-    const mins = Math.floor(diffMs / 60000);
-
-    if (mins < 1) return '<1 min';
-    if (mins < 60) return mins + ' min';
-
-    const h = Math.floor(mins / 60);
-    const m = mins % 60;
-
-    if (h < 24) return `${h}h ${m}m`;
-
-    const d = Math.floor(h / 24);
-    const rh = h % 24;
-
-    return `${d}d ${rh}h`;
-}
-
-function alertBadge(type) {
-    return `<span class="alert-badge ${type}">${fmt(type)}</span>`;
-}
-
-function statusBadge(resolved) {
-    if (resolved) {
-        return '<span class="status-badge resolved">Resolved</span>';
-    }
-
-    return '<span class="status-badge active">Active</span>';
-}
-
-function emailBadge(sent) {
-    if (sent) {
-        return '<span class="email-badge sent">Sent</span>';
-    }
-
-    return '<span class="email-badge pending">Pending</span>';
-}
-
-async function loadAlerts() {
-    const live = document.getElementById('liveState');
-
-    const status = document.getElementById('statusFilter').value;
-    const alertType = document.getElementById('typeFilter').value;
-    const search = document.getElementById('searchInput').value.trim();
-
-    const params = new URLSearchParams({
-        status: status,
-        alert_type: alertType,
-        search: search
-    });
-
-    try {
-        live.classList.remove('offline');
-        live.innerHTML = '<span class="live-dot"></span>Refreshing';
-
-        const response = await fetch('/api/alerts?' + params.toString());
-
-        if (!response.ok) {
-            throw new Error('HTTP ' + response.status);
-        }
-
-        const data = await response.json();
-
-        renderSummary(data.summary);
-        renderAlerts(data.alerts);
-
-        live.classList.remove('offline');
-        live.innerHTML = '<span class="live-dot"></span>Live';
-
-    } catch (error) {
-        live.classList.add('offline');
-        live.innerHTML = '<span class="live-dot"></span>Disconnected';
-        console.error(error);
-    }
-}
-
-function renderSummary(summary) {
-    document.getElementById('activeTotal').innerText = summary.active_total || 0;
-    document.getElementById('agentOffline').innerText = summary.agent_offline || 0;
-    document.getElementById('serviceDown').innerText = summary.service_down || 0;
-    document.getElementById('eodMissing').innerText = summary.eod_missing || 0;
-    document.getElementById('healthWarning').innerText = summary.health_warning || 0;
-}
-
-function renderAlerts(alerts) {
-    let html = '';
-
-    alerts.forEach(alert => {
-        html += `
-            <tr>
-                <td>
-                    <a class="store-link" href="/store/${alert.store_code}">
-                        ${fmt(alert.store_code)}
-                    </a>
-                    <div class="store-name">${fmt(alert.store_name)}</div>
-                </td>
-                <td>${alertBadge(alert.alert_type)}</td>
-                <td>${fmt(alert.target)}</td>
-                <td>${dateTime(alert.first_seen_at)}</td>
-                <td>${durationFrom(alert.first_seen_at, alert.resolved_at)}</td>
-                <td>${emailBadge(alert.email_sent)}</td>
-                <td>${statusBadge(alert.resolved)}</td>
-            </tr>
-        `;
-    });
-
-    document.getElementById('alertsTable').innerHTML =
-        html || '<tr><td colspan="7">Nu există alerte pentru filtrul selectat.</td></tr>';
-}
-
-function applyUrlFilters() {
-    const params = new URLSearchParams(window.location.search);
-
-    const status = params.get('status');
-    const alertType = params.get('alert_type');
-    const search = params.get('search');
-
-    if (status && document.getElementById('statusFilter')) {
-        document.getElementById('statusFilter').value = status;
-    }
-
-    if (alertType && document.getElementById('typeFilter')) {
-        document.getElementById('typeFilter').value = alertType;
-    }
-
-    if (search && document.getElementById('searchInput')) {
-        document.getElementById('searchInput').value = search;
-    }
-}
-
-applyUrlFilters();
-loadAlerts();
-setInterval(loadAlerts, 30000);
+const escapeHtml=value=>String(value??'').replace(/[&<>'"]/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[char]));
+const fmt=value=>value===null||value===undefined||value===''?'-':escapeHtml(value);
+let searchTimer;
+function parseDate(value){if(!value)return null;const date=new Date(value);return Number.isNaN(date.getTime())?null:date}
+function dateTime(value){const date=parseDate(value);return date?date.toLocaleString('ro-RO',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}):fmt(value)}
+function durationFrom(value,resolvedAt){const start=parseDate(value),end=parseDate(resolvedAt)||new Date();if(!start)return'-';const mins=Math.max(0,Math.floor((end-start)/60000));if(mins<1)return'<1 min';if(mins<60)return`${mins} min`;const hours=Math.floor(mins/60);if(hours<24)return`${hours}h ${mins%60}m`;return`${Math.floor(hours/24)}z ${hours%24}h`}
+function alertBadge(type){return`<span class="alert-badge ${fmt(type)}">${fmt(type).replaceAll('_',' ')}</span>`}
+function statusBadge(resolved){return resolved?'<span class="status-badge resolved">Resolved</span>':'<span class="status-badge active">Active</span>'}
+function emailBadge(sent){return sent?'<span class="email-badge sent">Sent</span>':'<span class="email-badge pending">Pending</span>'}
+function renderSummary(summary={}){document.getElementById('activeTotal').textContent=summary.active_total||0;document.getElementById('agentOffline').textContent=summary.agent_offline||0;document.getElementById('serviceDown').textContent=summary.service_down||0;document.getElementById('eodMissing').textContent=summary.eod_missing||0;document.getElementById('healthWarning').textContent=summary.health_warning||0}
+function renderAlerts(alerts=[]){document.getElementById('resultCount').textContent=`${alerts.length} ${alerts.length===1?'alertă':'alerte'}`;document.getElementById('alertsTable').innerHTML=alerts.map(alert=>`<tr class="${alert.resolved?'is-resolved':'is-active'}"><td data-label="Magazin"><a class="store-link" href="/store/${encodeURIComponent(alert.store_code)}">${fmt(alert.store_code)}</a><div class="store-name" title="${fmt(alert.store_name)}">${fmt(alert.store_name)} · ${fmt(alert.host)}</div></td><td data-label="Alertă">${alertBadge(alert.alert_type)}</td><td data-label="Target" class="target-cell" title="${fmt(alert.target)}">${fmt(alert.target)}</td><td data-label="Început">${dateTime(alert.first_seen_at)}</td><td data-label="Durată">${durationFrom(alert.first_seen_at,alert.resolved_at)}</td><td data-label="Email">${emailBadge(alert.email_sent)}</td><td data-label="Status">${statusBadge(alert.resolved)}</td></tr>`).join('')||'<tr><td colspan="7" class="empty-state">Nu există alerte pentru filtrele selectate.</td></tr>'}
+function currentFilters(){return{status:document.getElementById('statusFilter').value,alert_type:document.getElementById('typeFilter').value,search:document.getElementById('searchInput').value.trim()}}
+function syncUrl(filters){const params=new URLSearchParams();if(filters.status!=='ACTIVE')params.set('status',filters.status);else params.set('status','ACTIVE');if(filters.alert_type!=='ALL')params.set('alert_type',filters.alert_type);if(filters.search)params.set('search',filters.search);history.replaceState(null,'',`${location.pathname}?${params}`);document.querySelectorAll('.summary-card').forEach(card=>card.classList.toggle('selected',card.dataset.type===filters.alert_type))}
+async function loadAlerts(){const live=document.getElementById('liveState'),filters=currentFilters(),params=new URLSearchParams(filters);syncUrl(filters);try{live.classList.remove('offline');live.innerHTML='<span class="live-dot"></span>Refreshing';const response=await fetch(`/api/alerts?${params}`,{cache:'no-store'});if(!response.ok)throw new Error(`HTTP ${response.status}`);const data=await response.json();renderSummary(data.summary);renderAlerts(data.alerts);document.getElementById('lastUpdate').textContent=dateTime(new Date());live.innerHTML='<span class="live-dot"></span>Live'}catch(error){live.classList.add('offline');live.innerHTML='<span class="live-dot"></span>Disconnected';document.getElementById('alertsTable').innerHTML='<tr><td colspan="7" class="empty-state">Alertele nu au putut fi încărcate.</td></tr>';console.error('Alerts load error:',error)}}
+function applyUrlFilters(){const params=new URLSearchParams(location.search),status=params.get('status'),type=params.get('alert_type'),search=params.get('search');if(['ACTIVE','RESOLVED','ALL'].includes(status))document.getElementById('statusFilter').value=status;if(['ALL','AGENT_OFFLINE','SERVICE_DOWN','EOD_MISSING','HEALTH_WARNING'].includes(type))document.getElementById('typeFilter').value=type;if(search)document.getElementById('searchInput').value=search}
+document.getElementById('statusFilter').addEventListener('change',loadAlerts);document.getElementById('typeFilter').addEventListener('change',loadAlerts);document.getElementById('searchInput').addEventListener('input',()=>{clearTimeout(searchTimer);searchTimer=setTimeout(loadAlerts,250)});document.querySelectorAll('.summary-card').forEach(card=>card.addEventListener('click',()=>{document.getElementById('statusFilter').value='ACTIVE';document.getElementById('typeFilter').value=card.dataset.type;loadAlerts()}));
+applyUrlFilters();loadAlerts();setInterval(loadAlerts,30000);
