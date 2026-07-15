@@ -45,6 +45,23 @@ def create_alert(cur, store_code, alert_type, target, seen_at):
             resolved_at
         )
         VALUES (%s, %s, %s, %s, %s, false, NULL, false, NULL)
+        ON CONFLICT (store_code, alert_type, target)
+        DO UPDATE SET
+            first_seen_at = CASE
+                WHEN alert_state.resolved THEN EXCLUDED.first_seen_at
+                ELSE alert_state.first_seen_at
+            END,
+            last_seen_at = EXCLUDED.last_seen_at,
+            email_sent = CASE
+                WHEN alert_state.resolved THEN false
+                ELSE alert_state.email_sent
+            END,
+            email_sent_at = CASE
+                WHEN alert_state.resolved THEN NULL
+                ELSE alert_state.email_sent_at
+            END,
+            resolved = false,
+            resolved_at = NULL
         RETURNING id
         """,
         (
