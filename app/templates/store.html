@@ -7,28 +7,28 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/base.css?v=7">
-    <link rel="stylesheet" href="/static/css/store.css?v=7">
+    <link rel="stylesheet" href="/static/css/base.css?v=9">
+    <link rel="stylesheet" href="/static/css/store.css?v=9">
 </head>
 <body>
-<header class="app-header">
-    <a class="app-brand" href="/dashboard">
+<header class="store-header">
+    <a class="store-brand" href="/dashboard">
         <span class="brand-mark">E</span>
-        <span><strong>EOD Command Center</strong><small>Store details</small></span>
+        <span><strong>EOD Command Center</strong><small>Monitorizare operațională magazine</small></span>
     </a>
-    <nav class="app-nav" aria-label="Navigare principală">
+    <nav class="store-nav" aria-label="Navigare principală">
         <a class="nav-link active" href="/dashboard">Dashboard</a>
-        <a class="nav-link" href="/alerts">Alerts</a>
+        <a class="nav-link" href="/alerts">Alerts <span class="nav-count" id="navAlertCount">0</span></a>
     </nav>
-    <div class="header-actions">
-        <span class="refresh-meta">Actualizat <strong id="lastUpdate">-</strong></span>
-        <button class="refresh-btn" type="button" onclick="loadStore()">Refresh</button>
+    <div class="header-status">
+        <div class="refresh-meta"><span>Ultima actualizare</span><strong id="lastUpdate">-</strong></div>
+        <button class="refresh-btn" id="refreshButton" type="button">Refresh</button>
         <div class="live-pill" id="liveState"><span class="live-dot"></span>Live</div>
     </div>
 </header>
-<main class="page-container" id="storePage" data-store-code="__STORE_CODE__">
+<main class="store-container" id="storePage" data-store-code="__STORE_CODE__">
     <section id="storeContent"><div class="loading-card">Se încarcă datele magazinului...</div></section>
 </main>
-<script src="/static/js/store.js?v=7"></script>
+<script src="/static/js/store.js?v=9"></script>
 </body>
 </html>
