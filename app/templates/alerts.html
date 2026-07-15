@@ -7,51 +7,69 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/static/css/base.css?v=7">
-    <link rel="stylesheet" href="/static/css/alerts.css?v=7">
+    <link rel="stylesheet" href="/static/css/base.css?v=8">
+    <link rel="stylesheet" href="/static/css/alerts.css?v=8">
 </head>
 <body>
-<header class="app-header">
-    <a class="app-brand" href="/dashboard">
+<header class="alerts-header">
+    <a class="alerts-brand" href="/dashboard">
         <span class="brand-mark">E</span>
-        <span><strong>EOD Command Center</strong><small>Alert Center</small></span>
+        <span><strong>EOD Command Center</strong><small>Monitorizare operațională magazine</small></span>
     </a>
-    <nav class="app-nav" aria-label="Navigare principală">
+    <nav class="alerts-nav" aria-label="Navigare principală">
         <a class="nav-link" href="/dashboard">Dashboard</a>
-        <a class="nav-link active" href="/alerts">Alerts</a>
+        <a class="nav-link active" href="/alerts">Alerts <span class="nav-count" id="navAlertCount">0</span></a>
     </nav>
-    <div class="header-actions">
-        <span class="refresh-meta">Actualizat <strong id="lastUpdate">-</strong></span>
-        <button class="refresh-btn" type="button" onclick="loadAlerts()">Refresh</button>
+    <div class="header-status">
+        <div class="refresh-meta"><span>Ultima actualizare</span><strong id="lastUpdate">-</strong></div>
         <div class="live-pill" id="liveState"><span class="live-dot"></span>Live</div>
     </div>
 </header>
-<main class="page-container">
-    <section class="page-heading">
-        <div><span class="eyebrow">Operational alerts</span><h1>Alert Center</h1><p>Incidente active, alerte rezolvate și starea notificărilor email.</p></div>
-        <strong id="resultCount">0 alerte</strong>
+
+<main class="alerts-container">
+    <section class="alerts-titlebar">
+        <div><strong>Alert Center</strong><span>Incidente active și istoric operațional</span></div>
+        <span id="resultCount">0 alerte</span>
     </section>
-    <section class="alert-summary-grid" aria-label="Rezumat alerte">
-        <button class="summary-card all" type="button" data-type="ALL"><span>Active</span><strong id="activeTotal">0</strong></button>
-        <button class="summary-card agent" type="button" data-type="AGENT_OFFLINE"><span>Agent Offline</span><strong id="agentOffline">0</strong></button>
-        <button class="summary-card service" type="button" data-type="SERVICE_DOWN"><span>Service Down</span><strong id="serviceDown">0</strong></button>
-        <button class="summary-card eod" type="button" data-type="EOD_MISSING"><span>EOD Missing</span><strong id="eodMissing">0</strong></button>
-        <button class="summary-card health" type="button" data-type="HEALTH_WARNING"><span>Health Warning</span><strong id="healthWarning">0</strong></button>
+
+    <section class="alert-kpi-grid" aria-label="Rezumat alerte">
+        <button class="alert-kpi kpi-active" type="button" data-type="ALL">
+            <span class="kpi-icon">!</span><span><small>Active Alerts</small><strong id="activeTotal">0</strong></span>
+        </button>
+        <button class="alert-kpi kpi-agent" type="button" data-type="AGENT_OFFLINE">
+            <span class="kpi-icon">⌁</span><span><small>Agent Offline</small><strong id="agentOffline">0</strong></span>
+        </button>
+        <button class="alert-kpi kpi-service" type="button" data-type="SERVICE_DOWN">
+            <span class="kpi-icon">⚙</span><span><small>Service Down</small><strong id="serviceDown">0</strong></span>
+        </button>
+        <button class="alert-kpi kpi-eod" type="button" data-type="EOD_MISSING">
+            <span class="kpi-icon">E</span><span><small>EOD Missing</small><strong id="eodMissing">0</strong></span>
+        </button>
+        <button class="alert-kpi kpi-health" type="button" data-type="HEALTH_WARNING">
+            <span class="kpi-icon">+</span><span><small>Health Warning</small><strong id="healthWarning">0</strong></span>
+        </button>
     </section>
+
     <section class="alerts-toolbar" aria-label="Filtre alerte">
-        <label class="search-box"><span>⌕</span><input id="searchInput" type="search" placeholder="Caută magazin, host, alertă sau target..."></label>
-        <label><span>Status</span><select id="statusFilter"><option value="ACTIVE">Active</option><option value="RESOLVED">Resolved</option><option value="ALL">All</option></select></label>
-        <label><span>Tip alertă</span><select id="typeFilter"><option value="ALL">All types</option><option value="AGENT_OFFLINE">Agent Offline</option><option value="SERVICE_DOWN">Service Down</option><option value="EOD_MISSING">EOD Missing</option><option value="HEALTH_WARNING">Health Warning</option></select></label>
+        <label class="search-box"><span class="search-icon">⌕</span><input id="searchInput" type="search" placeholder="Caută magazin, host, alertă sau target..."></label>
+        <div class="status-filter" role="group" aria-label="Status alertă">
+            <button type="button" data-status="ACTIVE">Active</button>
+            <button type="button" data-status="RESOLVED">Resolved</button>
+            <button type="button" data-status="ALL">All</button>
+        </div>
+        <label class="type-filter"><span>Tip</span><select id="typeFilter"><option value="ALL">All types</option><option value="AGENT_OFFLINE">Agent Offline</option><option value="SERVICE_DOWN">Service Down</option><option value="EOD_MISSING">EOD Missing</option><option value="HEALTH_WARNING">Health Warning</option></select></label>
+        <button class="toolbar-refresh" id="refreshButton" type="button">Refresh</button>
     </section>
+
     <section class="alerts-card">
         <div class="table-wrap">
             <table class="alerts-table">
-                <thead><tr><th>Magazin</th><th>Alertă</th><th>Target</th><th>Început</th><th>Durată</th><th>Email</th><th>Status</th></tr></thead>
-                <tbody id="alertsTable"><tr><td colspan="7" class="empty-state">Se încarcă alertele...</td></tr></tbody>
+                <thead><tr><th>Store</th><th>Alert</th><th>Target</th><th>Since</th><th>Duration</th><th>Email</th><th>Status</th></tr></thead>
+                <tbody id="alertsTable"><tr><td colspan="7" class="table-message">Se încarcă alertele...</td></tr></tbody>
             </table>
         </div>
     </section>
 </main>
-<script src="/static/js/alerts.js?v=7"></script>
+<script src="/static/js/alerts.js?v=8"></script>
 </body>
 </html>
