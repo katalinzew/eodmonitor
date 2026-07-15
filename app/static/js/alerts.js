@@ -131,5 +131,26 @@ function renderAlerts(alerts) {
         html || '<tr><td colspan="7">Nu există alerte pentru filtrul selectat.</td></tr>';
 }
 
+function applyUrlFilters() {
+    const params = new URLSearchParams(window.location.search);
+
+    const status = params.get('status');
+    const alertType = params.get('alert_type');
+    const search = params.get('search');
+
+    if (status && document.getElementById('statusFilter')) {
+        document.getElementById('statusFilter').value = status;
+    }
+
+    if (alertType && document.getElementById('typeFilter')) {
+        document.getElementById('typeFilter').value = alertType;
+    }
+
+    if (search && document.getElementById('searchInput')) {
+        document.getElementById('searchInput').value = search;
+    }
+}
+
+applyUrlFilters();
 loadAlerts();
 setInterval(loadAlerts, 30000);

@@ -1,42 +1,53 @@
 <!doctype html>
 <html lang="ro">
 <head>
-<meta charset="utf-8">
-<title>EOD Command Center</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/static/css/base.css?v=1">
-<link rel="stylesheet" href="/static/css/dashboard.css?v=1">
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>EOD Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/base.css?v=6">
+    <link rel="stylesheet" href="/static/css/dashboard.css?v=6">
 </head>
 <body>
-<header class="app-header">
-<div><div class="brand-title">EOD Command Center</div><div class="brand-subtitle">Live monitoring pentru magazine</div></div>
-<div class="header-actions">
-<div class="live-pill" id="liveState"><span class="live-dot"></span>Live</div>
-<button class="btn" onclick="loadDashboard()">Refresh</button>
-</div>
+<header class="dashboard-header">
+    <a class="dashboard-brand" href="/dashboard">
+        <span class="brand-mark">E</span>
+        <span><strong>EOD Command Center</strong><small>Monitorizare operațională magazine</small></span>
+    </a>
+    <nav class="dashboard-nav" aria-label="Navigare principală">
+        <a class="nav-link active" href="/dashboard">Dashboard</a>
+        <a class="nav-link" href="/alerts">Alerts <span class="nav-count" id="navAlertCount">0</span></a>
+    </nav>
+    <div class="header-status">
+        <div class="refresh-meta"><span>Ultima actualizare</span><strong id="lastUpdate">-</strong></div>
+        <button class="refresh-btn" type="button" onclick="loadAllData()">Refresh</button>
+        <div class="live-pill" id="liveState"><span class="live-dot"></span>Live</div>
+    </div>
 </header>
-<main class="container">
-<section class="hero-panel">
-<div><div class="hero-eyebrow">Operational overview</div><h1>Store Fleet Health</h1><p>Dashboard pentru monitorizarea EOD și a agenților.</p></div>
-<div class="hero-meta"><div class="small">Last refresh</div><div class="hero-time" id="lastUpdate">-</div></div>
-</section>
-<section class="summary-grid">
-<div class="summary-card"><div class="summary-label">Stores</div><div class="summary-value" id="totalStores">0</div></div>
-<div class="summary-card ok-card"><div class="summary-label">Healthy</div><div class="summary-value" id="okStores">0</div></div>
-<div class="summary-card warn-card"><div class="summary-label">Problems</div><div class="summary-value" id="problemStores">0</div></div>
-<div class="summary-card bad-card"><div class="summary-label">Offline</div><div class="summary-value" id="offlineStores">0</div></div>
-</section>
-<section class="toolbar-panel">
-<input id="searchInput" class="search-input" placeholder="Caută magazin..." oninput="renderDashboard()">
-<div class="filter-group">
-<button class="filter-btn active" data-filter="ALL" onclick="setFilter('ALL')">All</button>
-<button class="filter-btn" data-filter="OK" onclick="setFilter('OK')">OK</button>
-<button class="filter-btn" data-filter="PROBLEM" onclick="setFilter('PROBLEM')">Problems</button>
-<button class="filter-btn" data-filter="OFFLINE" onclick="setFilter('OFFLINE')">Offline</button>
-</div></section>
-<section class="store-grid" id="storeGrid"><div class="loading-card">Loading telemetry...</div></section>
+<main class="dashboard-container">
+    <section class="stats-grid" aria-label="Rezumat flotă">
+        <article class="stat-card stat-neutral"><div class="stat-icon">▦</div><div><span class="stat-label">Magazine</span><strong class="stat-value" id="totalStores">0</strong><small class="stat-caption">total monitorizate</small></div></article>
+        <article class="stat-card stat-ok"><div class="stat-icon">✓</div><div><span class="stat-label">Healthy</span><strong class="stat-value" id="okStores">0</strong><small class="stat-caption">fără probleme active</small></div></article>
+        <article class="stat-card stat-warning"><div class="stat-icon">!</div><div><span class="stat-label">Problems</span><strong class="stat-value" id="problemStores">0</strong><small class="stat-caption">necesită verificare</small></div></article>
+        <article class="stat-card stat-offline"><div class="stat-icon">⌁</div><div><span class="stat-label">Offline</span><strong class="stat-value" id="offlineStores">0</strong><small class="stat-caption">agent indisponibil</small></div></article>
+        <a class="stat-card stat-danger" href="/alerts?status=ACTIVE&alert_type=SERVICE_DOWN"><div class="stat-icon">⚙</div><div><span class="stat-label">Service issues</span><strong class="stat-value" id="serviceAlerts">0</strong><small class="stat-caption">servicii afectate</small></div></a>
+        <a class="stat-card stat-alert" href="/alerts?status=ACTIVE"><div class="stat-icon">⚠</div><div><span class="stat-label">Alerte active</span><strong class="stat-value" id="activeAlerts">0</strong><small class="stat-caption">toate incidentele</small></div></a>
+    </section>
+    <section class="hidden-alert-values" aria-hidden="true"><span id="agentAlerts">0</span><span id="eodAlerts">0</span><span id="healthAlerts">0</span></section>
+    <section class="dashboard-toolbar">
+        <label class="search-box"><span class="search-icon">⌕</span><input id="searchInput" type="search" placeholder="Caută după cod, nume, IP sau hostname..." oninput="renderDashboard()"></label>
+        <div class="filter-group" role="group" aria-label="Filtrare magazine">
+            <button class="filter-btn active" data-filter="ALL" onclick="setFilter('ALL')">All</button>
+            <button class="filter-btn" data-filter="OK" onclick="setFilter('OK')">OK</button>
+            <button class="filter-btn" data-filter="PROBLEM" onclick="setFilter('PROBLEM')">Problems</button>
+            <button class="filter-btn" data-filter="OFFLINE" onclick="setFilter('OFFLINE')">Offline</button>
+        </div>
+    </section>
+    <section class="results-header"><div><strong>Magazine</strong><span id="visibleStoreCount">0 rezultate</span></div><span>Click pe un card pentru detalii complete</span></section>
+    <section class="store-grid" id="storeGrid"><div class="loading-card">Loading telemetry...</div></section>
 </main>
-<script src="/static/js/dashboard.js?v=1"></script>
-</body></html>
+<script src="/static/js/dashboard.js?v=6"></script>
+</body>
+</html>
