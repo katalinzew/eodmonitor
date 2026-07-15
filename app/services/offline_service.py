@@ -69,7 +69,7 @@ def check_offline_agents_once():
 async def offline_monitor_loop():
     while True:
         try:
-            check_offline_agents_once()
+            await asyncio.to_thread(check_offline_agents_once)
         except Exception as e:
             print(f"[offline-monitor] error: {e}")
 

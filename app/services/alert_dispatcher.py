@@ -222,7 +222,7 @@ def send_alert_now(alert_id):
 async def alert_dispatcher_loop():
     while True:
         try:
-            sent = dispatch_alert_emails_once()
+            sent = await asyncio.to_thread(dispatch_alert_emails_once)
             if sent:
                 print(f"[alert-dispatcher] sent {sent} email(s)")
         except Exception as e:
