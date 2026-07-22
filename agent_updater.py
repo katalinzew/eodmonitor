@@ -61,7 +61,9 @@ def verify_manifest(payload, api_key):
     unsigned.pop("signature", None)
     key = api_key if isinstance(api_key, bytes) else api_key.encode("utf-8")
     expected = hmac.new(key, canonical_bytes(unsigned), hashlib.sha256).hexdigest()
-    return hmac.compare_digest(received, expected) if hasattr(hmac, "compare_digest") else received == expected
+    received_bytes = received if isinstance(received, bytes) else received.encode("ascii")
+    expected_bytes = expected if isinstance(expected, bytes) else expected.encode("ascii")
+    return hmac.compare_digest(received_bytes, expected_bytes) if hasattr(hmac, "compare_digest") else received_bytes == expected_bytes
 
 
 def sha256_file(path):

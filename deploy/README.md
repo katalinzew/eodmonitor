@@ -79,8 +79,8 @@ On the central server, from the repository root:
 python tools/publish_agent_release.py --version 1.6.0 --agent agent_eod.py --activate
 ```
 
-Stores check for updates every five minutes with a randomized delay of up to one
-minute. The updater backs up the current file, validates Python syntax, installs the
+Stores check for updates every 24 hours. The updater backs up the current file,
+validates Python syntax, installs the
 new file atomically, restarts `eod-agent.service`, and rolls back if the service does
 not remain active.
 
