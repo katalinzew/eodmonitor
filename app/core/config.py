@@ -7,6 +7,12 @@ SERVICE_CONTROL_STORES = {
     for code in os.getenv("EOD_SERVICE_CONTROL_STORES", "5034").split(",")
     if code.strip()
 }
+LOG_COLLECTION_STORES = {
+    code.strip()
+    for code in os.getenv("EOD_LOG_COLLECTION_STORES", "5034").split(",")
+    if code.strip()
+}
+MAX_LOG_ARCHIVE_BYTES = int(os.getenv("EOD_MAX_LOG_ARCHIVE_BYTES", str(20 * 1024 * 1024)))
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 AGENT_PACKAGES_DIR = os.getenv(
     "EOD_AGENT_PACKAGES_DIR",

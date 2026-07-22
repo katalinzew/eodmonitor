@@ -1,8 +1,14 @@
 from fastapi import HTTPException
 
-from app.core.config import OFFLINE_AFTER_MINUTES, LATE_GRACE_MINUTES, SERVICE_CONTROL_STORES
+from app.core.config import (
+    LATE_GRACE_MINUTES,
+    LOG_COLLECTION_STORES,
+    OFFLINE_AFTER_MINUTES,
+    SERVICE_CONTROL_STORES,
+)
 from app.core.database import get_conn
 from app.repositories.dashboard_repository import DASHBOARD_SQL, rows_to_dicts
+from app.repositories.log_collection_repository import available_logs
 
 
 def get_store_details(store_code: str):
@@ -93,4 +99,6 @@ def get_store_details(store_code: str):
         "events": events,
         "eod_history": eod_history,
         "service_control_enabled": store_code in SERVICE_CONTROL_STORES,
+        "log_collection_enabled": store_code in LOG_COLLECTION_STORES,
+        "available_logs": available_logs() if store_code in LOG_COLLECTION_STORES else [],
     }

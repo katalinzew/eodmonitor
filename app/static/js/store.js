@@ -109,7 +109,7 @@ function renderStore(data) {
     document.getElementById('storeContent').innerHTML = `
         <section class="store-titlebar">
             <div class="store-identity"><h1>${fmt(store.store_code)} · ${fmt(store.store_name)}</h1><span>${fmt(store.host)} · ${fmt(store.hostname)}</span></div>
-            <div class="status-group">${statusBadge(status, `Overall ${status}`)}${statusBadge(heartbeatStatus, `Agent ${store.heartbeat_state || 'NO_DATA'}`)}</div>
+            <div class="status-group">${data.log_collection_enabled ? '<button type="button" class="collect-logs-button" data-open-log-modal>Collect Logs</button>' : ''}${statusBadge(status, `Overall ${status}`)}${statusBadge(heartbeatStatus, `Agent ${store.heartbeat_state || 'NO_DATA'}`)}</div>
         </section>
         <div class="store-layout">
             <div class="store-column primary-column">
@@ -141,6 +141,76 @@ function renderStore(data) {
                 <article class="store-card"><header class="card-head"><h2>EOD History</h2><small>Ultimele ${history.length} înregistrări</small></header><div class="history-scroll"><table class="history-table"><thead><tr><th>Date</th><th>Status</th><th>Received</th><th>Message</th></tr></thead><tbody>${renderHistory(history)}</tbody></table></div></article>
             </aside>
         </div>`;
+    renderLogOptions(data.available_logs || []);
+}
+
+function renderLogOptions(logs) {
+    document.getElementById('logOptions').innerHTML = logs.map(log => `
+        <label class="log-option">
+            <input type="checkbox" name="logKey" value="${fmt(log.key)}" checked>
+            <span><strong>${fmt(log.label)}</strong><small>${fmt(log.filename)}</small></span>
+        </label>`).join('');
+}
+
+function setLogStatus(message, tone = '') {
+    const status = document.getElementById('logRequestStatus');
+    status.textContent = message;
+    status.className = `log-request-status ${tone}`.trim();
+}
+
+function openLogModal() {
+    const modal = document.getElementById('logModal');
+    modal.hidden = false;
+    document.body.classList.add('modal-open');
+    setLogStatus('');
+}
+
+function closeLogModal() {
+    document.getElementById('logModal').hidden = true;
+    document.body.classList.remove('modal-open');
+}
+
+async function waitForLogCollection(requestId) {
+    for (let attempt = 0; attempt < 30; attempt += 1) {
+        await new Promise(resolve => setTimeout(resolve, 4000));
+        const response = await fetch(`/api/stores/${encodeURIComponent(STORE_CODE)}/log-collections/${requestId}`, { cache: 'no-store' });
+        if (!response.ok) throw new Error(`Status HTTP ${response.status}`);
+        const data = await response.json();
+        if (data.status === 'PENDING') setLogStatus('Cererea așteaptă să fie preluată de agent...');
+        if (data.status === 'RUNNING') setLogStatus('Agentul arhivează și încarcă logurile...');
+        if (data.status === 'SUCCEEDED') {
+            setLogStatus('Arhiva a fost trimisă prin email.', 'success');
+            return;
+        }
+        if (data.status === 'FAILED') throw new Error(data.message || 'Colectarea logurilor a eșuat');
+    }
+    throw new Error('Agentul nu a finalizat cererea în timpul așteptat');
+}
+
+async function submitLogCollection(event) {
+    event.preventDefault();
+    const keys = [...document.querySelectorAll('input[name="logKey"]:checked')].map(input => input.value);
+    if (!keys.length) {
+        setLogStatus('Selectează cel puțin un fișier.', 'error');
+        return;
+    }
+    const submit = document.getElementById('collectLogsSubmit');
+    submit.disabled = true;
+    setLogStatus('Se creează cererea...');
+    try {
+        const response = await fetch(`/api/stores/${encodeURIComponent(STORE_CODE)}/log-collections`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ log_keys: keys })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+        await waitForLogCollection(data.id);
+    } catch (error) {
+        setLogStatus(error.message, 'error');
+    } finally {
+        submit.disabled = false;
+    }
 }
 
 async function queueServiceCommand(button) {
@@ -204,8 +274,16 @@ async function loadPage() {
 
 document.getElementById('refreshButton').addEventListener('click', loadPage);
 document.getElementById('storeContent').addEventListener('click', event => {
+    if (event.target.closest('[data-open-log-modal]')) openLogModal();
     const button = event.target.closest('button[data-service][data-action]');
     if (button) queueServiceCommand(button);
+});
+document.getElementById('logCollectionForm').addEventListener('submit', submitLogCollection);
+document.getElementById('logModal').addEventListener('click', event => {
+    if (event.target.closest('[data-close-log-modal]')) closeLogModal();
+});
+document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && !document.getElementById('logModal').hidden) closeLogModal();
 });
 loadPage();
 setInterval(loadPage, 30000);

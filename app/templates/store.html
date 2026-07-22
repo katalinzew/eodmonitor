@@ -8,7 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/static/css/base.css?v=9">
-    <link rel="stylesheet" href="/static/css/store.css?v=10">
+    <link rel="stylesheet" href="/static/css/store.css?v=11">
 </head>
 <body>
 <header class="store-header">
@@ -30,6 +30,18 @@
 <main class="store-container" id="storePage" data-store-code="__STORE_CODE__">
     <section id="storeContent"><div class="loading-card">Se încarcă datele magazinului...</div></section>
 </main>
-<script src="/static/js/store.js?v=10"></script>
+<div class="log-modal" id="logModal" hidden>
+    <div class="log-modal-backdrop" data-close-log-modal></div>
+    <section class="log-modal-panel" role="dialog" aria-modal="true" aria-labelledby="logModalTitle">
+        <header><div><h2 id="logModalTitle">Collect Logs</h2><p>Selectează fișierele care vor fi arhivate și trimise prin email.</p></div><button type="button" class="modal-close" data-close-log-modal aria-label="Închide">×</button></header>
+        <form id="logCollectionForm">
+            <div class="log-options" id="logOptions"></div>
+            <div class="log-delivery">Destinatari: SupportSoftware@smartid.ro, Valentin.SURUGIU@smartid.ro</div>
+            <div class="log-request-status" id="logRequestStatus" aria-live="polite"></div>
+            <footer><button type="button" class="modal-cancel" data-close-log-modal>Cancel</button><button type="submit" class="collect-submit" id="collectLogsSubmit">Collect &amp; Email</button></footer>
+        </form>
+    </section>
+</div>
+<script src="/static/js/store.js?v=11"></script>
 </body>
 </html>

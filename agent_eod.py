@@ -7,12 +7,13 @@ import time
 import socket
 import platform
 import subprocess
+import zipfile
 import requests
 import datetime as dt
 
 BASE_DIR = "/SmartId/agent"
 CONFIG_PATH = os.path.join(BASE_DIR, "agent_config.json")
-AGENT_VERSION = "1.7.0"
+AGENT_VERSION = "1.8.0"
 
 
 def load_agent_config():
@@ -43,6 +44,16 @@ SERVICES_TO_CHECK = [
     "sidTrezor.service",
     "idcreader.service"
 ]
+
+LOG_FILES = {
+    "meti_export": "/SmartId/METIEXPORT/logs/meti_export.log",
+    "storepack": "/SmartId/STOREPACK/logs/storepack.log",
+    "trezor": "/SmartId/TREZOR/logs/trezor.log",
+    "srvdemon": "/home/server/tmp/srvdemon.log",
+    "ars_daemon": "/home/NCR/ArsPluMnt/logs/daemon_ArsPluMnt.log",
+    "ars_general": "/home/NCR/ArsPluMnt/logs/general.log",
+}
+MAX_LOG_ARCHIVE_BYTES = 20 * 1024 * 1024
 
 REGEX = re.compile(r"^eodstatus(\d{14})\.json$")
 
@@ -460,12 +471,102 @@ def process_service_command():
         print("SERVICE COMMAND ERROR:", str(error))
 
 
+def report_log_collection(request_id, status, message):
+    try:
+        response = requests.post(
+            SERVER_URL + "/api/agent-log-collections/report",
+            data=json.dumps({
+                "store_code": STORE_CODE,
+                "request_id": request_id,
+                "status": status,
+                "message": message,
+            }),
+            headers={"Content-Type": "application/json", "X-API-Key": API_KEY},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print("LOG COLLECTION REPORT ERROR:", response.status_code, response.text)
+    except Exception as error:
+        print("LOG COLLECTION REPORT ERROR:", str(error))
+
+
+def process_log_collection():
+    archive_path = None
+    request_id = None
+    try:
+        response = requests.get(
+            SERVER_URL + "/api/agent-log-collections/next",
+            params={"store_code": STORE_CODE},
+            headers={"X-API-Key": API_KEY},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print("LOG COLLECTION POLL ERROR:", response.status_code, response.text)
+            return
+
+        collection = response.json().get("request")
+        if not collection:
+            return
+        request_id = collection.get("id")
+        keys = collection.get("log_keys") or []
+        if not keys or any(key not in LOG_FILES for key in keys):
+            report_log_collection(request_id, "FAILED", "Request contains an invalid log key")
+            return
+
+        paths = [LOG_FILES[key] for key in keys]
+        missing = [path for path in paths if not os.path.isfile(path)]
+        if missing:
+            report_log_collection(request_id, "FAILED", "Missing log files: {}".format(", ".join(missing)))
+            return
+        total_size = sum(os.path.getsize(path) for path in paths)
+        if total_size > MAX_LOG_ARCHIVE_BYTES:
+            report_log_collection(request_id, "FAILED", "Selected logs exceed 20 MB")
+            return
+
+        temp_dir = os.path.join(BASE_DIR, "tmp")
+        if not os.path.isdir(temp_dir):
+            os.makedirs(temp_dir)
+        archive_path = os.path.join(temp_dir, "logs_{}_{}.zip".format(STORE_CODE, request_id))
+        with zipfile.ZipFile(archive_path, "w", zipfile.ZIP_DEFLATED) as archive:
+            for path in paths:
+                archive.write(path, os.path.basename(path))
+        if os.path.getsize(archive_path) > MAX_LOG_ARCHIVE_BYTES:
+            report_log_collection(request_id, "FAILED", "ZIP archive exceeds 20 MB")
+            return
+
+        print("LOG COLLECTION UPLOAD:", archive_path)
+        with open(archive_path, "rb") as archive_file:
+            upload = requests.post(
+                SERVER_URL + "/api/agent-log-collections/{}/upload".format(request_id),
+                params={"store_code": STORE_CODE},
+                data=archive_file,
+                headers={"Content-Type": "application/zip", "X-API-Key": API_KEY},
+                timeout=120,
+            )
+        if upload.status_code != 200:
+            report_log_collection(request_id, "FAILED", "Upload failed: {} {}".format(upload.status_code, upload.text[:500]))
+            print("LOG COLLECTION UPLOAD ERROR:", upload.status_code, upload.text)
+            return
+        print("LOG COLLECTION RESULT: archive sent by email")
+    except Exception as error:
+        print("LOG COLLECTION ERROR:", str(error))
+        if request_id is not None:
+            report_log_collection(request_id, "FAILED", str(error))
+    finally:
+        if archive_path and os.path.exists(archive_path):
+            try:
+                os.remove(archive_path)
+            except Exception as error:
+                print("LOG COLLECTION CLEANUP ERROR:", str(error))
+
+
 def main_loop():
     while True:
         try:
             payload = build_payload()
             send_payload(payload)
             process_service_command()
+            process_log_collection()
 
         except Exception as e:
             print("GENERAL ERROR:", str(e))
