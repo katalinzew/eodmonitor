@@ -12,7 +12,7 @@ import datetime as dt
 
 BASE_DIR = "/SmartId/agent"
 CONFIG_PATH = os.path.join(BASE_DIR, "agent_config.json")
-AGENT_VERSION = "1.6.0"
+AGENT_VERSION = "1.7.0"
 
 
 def load_agent_config():
@@ -26,6 +26,7 @@ def load_agent_config():
 
 AGENT_CONFIG = load_agent_config()
 API_URL = AGENT_CONFIG.get("server_url", "http://10.143.252.2:8000").rstrip("/") + "/api/status"
+SERVER_URL = AGENT_CONFIG.get("server_url", "http://10.143.252.2:8000").rstrip("/")
 API_KEY = AGENT_CONFIG.get("api_key", "test123")
 STORE_CODE = AGENT_CONFIG.get("store_code", "5034")
 
@@ -406,11 +407,65 @@ def send_payload(payload):
         print("API ERROR:", str(e))
 
 
+def report_service_command(command_id, status, message):
+    try:
+        response = requests.post(
+            SERVER_URL + "/api/agent-commands/report",
+            data=json.dumps({
+                "store_code": STORE_CODE,
+                "command_id": command_id,
+                "status": status,
+                "message": message,
+            }),
+            headers={"Content-Type": "application/json", "X-API-Key": API_KEY},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print("SERVICE COMMAND REPORT ERROR:", response.status_code, response.text)
+    except Exception as error:
+        print("SERVICE COMMAND REPORT ERROR:", str(error))
+
+
+def process_service_command():
+    try:
+        response = requests.get(
+            SERVER_URL + "/api/agent-commands/next",
+            params={"store_code": STORE_CODE},
+            headers={"X-API-Key": API_KEY},
+            timeout=10,
+        )
+        if response.status_code != 200:
+            print("SERVICE COMMAND POLL ERROR:", response.status_code, response.text)
+            return
+
+        command = response.json().get("command")
+        if not command:
+            return
+
+        service_name = command.get("service_name")
+        action = str(command.get("action", "")).lower()
+        command_id = command.get("id")
+        if service_name not in SERVICES_TO_CHECK or action not in ("start", "stop", "restart"):
+            report_service_command(command_id, "FAILED", "Command rejected by agent allowlist")
+            return
+
+        print("SERVICE COMMAND:", action, service_name)
+        output = run_cmd_timeout(["systemctl", action, service_name], timeout_sec=30)
+        state = run_cmd_timeout(["systemctl", "is-active", service_name], timeout_sec=5)
+        succeeded = state == ("inactive" if action == "stop" else "active")
+        message = "systemctl output: {}; final state: {}".format(output or "(empty)", state)
+        report_service_command(command_id, "SUCCEEDED" if succeeded else "FAILED", message)
+        print("SERVICE COMMAND RESULT:", message)
+    except Exception as error:
+        print("SERVICE COMMAND ERROR:", str(error))
+
+
 def main_loop():
     while True:
         try:
             payload = build_payload()
             send_payload(payload)
+            process_service_command()
 
         except Exception as e:
             print("GENERAL ERROR:", str(e))

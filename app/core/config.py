@@ -2,6 +2,11 @@ import datetime as dt
 import os
 
 API_KEY = os.getenv("EOD_API_KEY", "test123")
+SERVICE_CONTROL_STORES = {
+    code.strip()
+    for code in os.getenv("EOD_SERVICE_CONTROL_STORES", "5034").split(",")
+    if code.strip()
+}
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 AGENT_PACKAGES_DIR = os.getenv(
     "EOD_AGENT_PACKAGES_DIR",

@@ -58,12 +58,13 @@ function resourceMetric(label, value, warnAt, badAt) {
     return `<div class="resource-metric"><div class="resource-top"><span>${label}</span><strong>${display}</strong></div><div class="resource-bar"><div class="resource-fill ${severity}" style="width:${width}%"></div></div></div>`;
 }
 
-function renderServices(services) {
+function renderServices(services, controlEnabled) {
     const entries = services && typeof services === 'object' ? Object.entries(services) : [];
     if (!entries.length) return '<div class="empty-state">Nu există servicii raportate.</div>';
     return entries.sort(([a], [b]) => a.localeCompare(b)).map(([name, value]) => {
         const active = String(value).toLowerCase() === 'active';
-        return `<div class="service-row"><span class="service-name" title="${fmt(name)}">${fmt(name)}</span><span class="service-state ${active ? 'active' : 'failed'}">${active ? '✓ Active' : '✕ Failed'}</span></div>`;
+        const controls = controlEnabled ? `<div class="service-actions"><button type="button" data-service="${fmt(name)}" data-action="start">Start</button><button type="button" data-service="${fmt(name)}" data-action="stop">Stop</button><button type="button" data-service="${fmt(name)}" data-action="restart">Restart</button></div>` : '';
+        return `<div class="service-row"><div class="service-summary"><span class="service-name" title="${fmt(name)}">${fmt(name)}</span><span class="service-state ${active ? 'active' : 'failed'}">${active ? '✓ Active' : '✕ Failed'}</span></div>${controls}</div>`;
     }).join('');
 }
 
@@ -123,7 +124,7 @@ function renderStore(data) {
                     <div class="data-item"><span>Ultimul heartbeat</span><strong>${dateTime(store.last_heartbeat)}</strong></div>
                 </div></article>
                 <article class="store-card"><header class="card-head"><h2>System Resources</h2><small>Utilizare curentă</small></header><div class="resource-grid">${resourceMetric('CPU', store.cpu_load_1m, 70, 90)}${resourceMetric('RAM', store.ram_percent, 75, 90)}${resourceMetric('Disk', store.disk_percent, 80, 90)}</div></article>
-                <article class="store-card"><header class="card-head"><h2>Services</h2><small>${Object.keys(services).length} raportate</small></header><div class="services-list">${renderServices(services)}</div></article>
+                <article class="store-card"><header class="card-head"><h2>Services</h2><small>${data.service_control_enabled ? 'Control activ pentru pilot' : `${Object.keys(services).length} raportate`}</small></header><div class="services-list">${renderServices(services, data.service_control_enabled)}</div><div class="command-feedback" id="commandFeedback" aria-live="polite"></div></article>
                 <article class="store-card"><header class="card-head"><h2>Timeline</h2><small>${events.length} evenimente · cele mai noi primele</small></header><div class="timeline-scroll"><div class="timeline-list">${renderTimeline(events)}</div></div></article>
             </div>
             <aside class="store-column secondary-column">
@@ -140,6 +141,32 @@ function renderStore(data) {
                 <article class="store-card"><header class="card-head"><h2>EOD History</h2><small>Ultimele ${history.length} înregistrări</small></header><div class="history-scroll"><table class="history-table"><thead><tr><th>Date</th><th>Status</th><th>Received</th><th>Message</th></tr></thead><tbody>${renderHistory(history)}</tbody></table></div></article>
             </aside>
         </div>`;
+}
+
+async function queueServiceCommand(button) {
+    const service = button.dataset.service;
+    const action = button.dataset.action;
+    if (!window.confirm(`${action.toUpperCase()} ${service}?`)) return;
+    const feedback = document.getElementById('commandFeedback');
+    button.disabled = true;
+    feedback.textContent = `Se trimite comanda ${action}...`;
+    feedback.className = 'command-feedback visible';
+    try {
+        const response = await fetch(`/api/stores/${encodeURIComponent(STORE_CODE)}/service-commands`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ service_name: service, action })
+        });
+        const data = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(data.detail || `HTTP ${response.status}`);
+        feedback.textContent = `Comanda ${action} a fost pusă în coadă. Agentul o va prelua în maximum 60 secunde.`;
+        setTimeout(loadStore, 65000);
+    } catch (error) {
+        feedback.textContent = `Comanda nu a putut fi trimisă: ${error.message}`;
+        feedback.classList.add('error');
+    } finally {
+        button.disabled = false;
+    }
 }
 
 async function loadAlertCount() {
@@ -176,5 +203,9 @@ async function loadPage() {
 }
 
 document.getElementById('refreshButton').addEventListener('click', loadPage);
+document.getElementById('storeContent').addEventListener('click', event => {
+    const button = event.target.closest('button[data-service][data-action]');
+    if (button) queueServiceCommand(button);
+});
 loadPage();
 setInterval(loadPage, 30000);

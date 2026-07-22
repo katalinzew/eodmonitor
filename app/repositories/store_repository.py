@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 
-from app.core.config import OFFLINE_AFTER_MINUTES, LATE_GRACE_MINUTES
+from app.core.config import OFFLINE_AFTER_MINUTES, LATE_GRACE_MINUTES, SERVICE_CONTROL_STORES
 from app.core.database import get_conn
 from app.repositories.dashboard_repository import DASHBOARD_SQL, rows_to_dicts
 
@@ -92,4 +92,5 @@ def get_store_details(store_code: str):
         "store": store,
         "events": events,
         "eod_history": eod_history,
+        "service_control_enabled": store_code in SERVICE_CONTROL_STORES,
     }
