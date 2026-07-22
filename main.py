@@ -3,7 +3,7 @@ import asyncio
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from app.routers import alerts, dashboard, health, stores, status
+from app.routers import agent_updates, alerts, dashboard, health, stores, status
 from app.services.alert_dispatcher import alert_dispatcher_loop
 from app.services.offline_service import offline_monitor_loop
 
@@ -16,6 +16,7 @@ app.include_router(health.router)
 app.include_router(stores.router)
 app.include_router(status.router)
 app.include_router(alerts.router)
+app.include_router(agent_updates.router)
 
 @app.on_event("startup")
 async def startup_event():

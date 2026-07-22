@@ -1,0 +1,13 @@
+[Unit]
+Description=EOD Monitor Agent Updater
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=root
+WorkingDirectory=/SmartId/agent
+ExecStart=/usr/bin/python -u /SmartId/agent/agent_updater.py
+
+[Install]
+WantedBy=multi-user.target

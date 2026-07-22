@@ -1,0 +1,7 @@
+{
+  "server_url": "http://10.143.252.2:8000",
+  "api_key": "CHANGE_ME",
+  "store_code": "CHANGE_ME",
+  "agent_version": "1.5",
+  "allow_insecure_http": false
+}

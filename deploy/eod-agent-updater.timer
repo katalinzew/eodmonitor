@@ -1,0 +1,12 @@
+[Unit]
+Description=Check for EOD Monitor agent updates
+
+[Timer]
+OnBootSec=3min
+OnUnitActiveSec=5min
+RandomizedDelaySec=60
+Persistent=true
+Unit=eod-agent-updater.service
+
+[Install]
+WantedBy=timers.target

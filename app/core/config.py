@@ -1,6 +1,12 @@
 import datetime as dt
+import os
 
-API_KEY = "test123"
+API_KEY = os.getenv("EOD_API_KEY", "test123")
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+AGENT_PACKAGES_DIR = os.getenv(
+    "EOD_AGENT_PACKAGES_DIR",
+    os.path.join(PROJECT_ROOT, "agent_packages"),
+)
 OFFLINE_AFTER_MINUTES = 5
 OK_VALID_HOURS = 10
 LATE_GRACE_MINUTES = 30

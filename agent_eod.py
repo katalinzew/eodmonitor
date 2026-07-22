@@ -1,7 +1,4 @@
 # -*- coding: utf-8 -*-
-# Agent EOD pentru fiecare magazin
-# Ruleaza local pe serverul magazinului
-# Verifica fisierul EOD, citeste schedule-ul si trimite health metrics catre API
 
 import os
 import re
@@ -9,62 +6,91 @@ import json
 import time
 import socket
 import platform
+import subprocess
 import requests
 import datetime as dt
 
+BASE_DIR = "/SmartId/agent"
+CONFIG_PATH = os.path.join(BASE_DIR, "agent_config.json")
+AGENT_VERSION = "1.6.0"
 
-# =========================
-# CONFIGURARE AGENT
-# =========================
 
-# API-ul central unde agentul trimite datele
-API_URL = "http://10.143.252.2:8000/api/status"
+def load_agent_config():
+    try:
+        with open(CONFIG_PATH, "r") as handle:
+            return json.load(handle)
+    except Exception as error:
+        print("AGENT CONFIG ERROR:", str(error))
+        return {}
 
-# Cheia simpla de autentificare catre API
-API_KEY = "test123"
 
-# Codul magazinului.
-# IMPORTANT: pe fiecare magazin trebuie schimbat codul.
-STORE_CODE = "5034"
+AGENT_CONFIG = load_agent_config()
+API_URL = AGENT_CONFIG.get("server_url", "http://10.143.252.2:8000").rstrip("/") + "/api/status"
+API_KEY = AGENT_CONFIG.get("api_key", "test123")
+STORE_CODE = AGENT_CONFIG.get("store_code", "5034")
 
-# Versiunea agentului, ca sa stim ce versiune ruleaza pe fiecare magazin
-AGENT_VERSION = "1.2"
-
-# Folderul unde apar fisierele EOD
 WATCH_DIR = "/home/NCR/webfront-endofday/eodstatus"
-
-# Fisierul din care citim ora programata de EOD
 CONF_FILE = "/home/NCR/webfront-endofday/conf/scheduled_eod.properties"
-
-# Cheia din fisierul de configurare
 SCHEDULE_KEY = "eod.scheduler.start.time"
 
-# La cate secunde trimite agentul status catre API
 CHECK_INTERVAL = 60
-
-# Partitia pentru care calculam disk usage
 DISK_PATH = "/"
 
-# Formatul acceptat pentru fisierele EOD:
-# eodstatusYYYYMMDDHHMMSS.json
+SERVICES_TO_CHECK = [
+    "sidMETIEXPORT.service",
+    "sidStorePack.service",
+    "sidTrezor.service",
+    "idcreader.service"
+]
+
 REGEX = re.compile(r"^eodstatus(\d{14})\.json$")
 
 
-# =========================
-# DATA CURENTA
-# =========================
-
 def today_ymd():
-    # Returneaza data de azi in format YYYYMMDD
     return dt.datetime.now().strftime("%Y%m%d")
 
 
-# =========================
-# CITIRE SCHEDULE EOD
-# =========================
+def extract_eod_file_created_at(filename):
+    try:
+        m = REGEX.match(filename)
+        if not m:
+            return None
+
+        ts = m.group(1)
+        d = dt.datetime.strptime(ts, "%Y%m%d%H%M%S")
+
+        return d.strftime("%Y-%m-%d %H:%M:%S")
+
+    except Exception as e:
+        print("EOD FILE DATE ERROR:", str(e))
+        return None
+
+
+def find_latest_eod_file():
+    best_name = None
+    best_ts = None
+
+    try:
+        for name in os.listdir(WATCH_DIR):
+            m = REGEX.match(name)
+
+            if not m:
+                continue
+
+            ts = m.group(1)
+
+            if best_ts is None or ts > best_ts:
+                best_ts = ts
+                best_name = name
+
+        return best_name, best_ts
+
+    except Exception as e:
+        print("WATCH DIR ERROR:", str(e))
+        return None, None
+
 
 def read_schedule_time():
-    # Citeste ora de EOD din fisierul scheduled_eod.properties
     try:
         if not os.path.exists(CONF_FILE):
             return None
@@ -73,7 +99,6 @@ def read_schedule_time():
             for line in f:
                 line = line.strip()
 
-                # Ignoram linii goale, comentarii sau linii fara =
                 if not line or line.startswith("#") or "=" not in line:
                     continue
 
@@ -81,9 +106,7 @@ def read_schedule_time():
                 key = key.strip()
                 value = value.strip()
 
-                # Cautam cheia corecta
                 if key == SCHEDULE_KEY:
-                    # Cautam ora in format HH:MM
                     m = re.search(r"([01][0-9]|2[0-3]):([0-5][0-9])", value)
                     if m:
                         return m.group(0)
@@ -95,48 +118,7 @@ def read_schedule_time():
         return None
 
 
-# =========================
-# GASIRE FISIER EOD
-# =========================
-
-def find_latest_today_file():
-    # Cauta cel mai nou fisier EOD de azi
-    ymd = today_ymd()
-    best_name = None
-    best_ts = None
-
-    try:
-        for name in os.listdir(WATCH_DIR):
-            m = REGEX.match(name)
-
-            # Ignoram orice fisier care nu respecta formatul
-            if not m:
-                continue
-
-            ts = m.group(1)
-
-            # Luam doar fisierele de azi
-            if not ts.startswith(ymd):
-                continue
-
-            # Alegem cel mai nou fisier dupa timestamp
-            if best_ts is None or ts > best_ts:
-                best_ts = ts
-                best_name = name
-
-        return best_name
-
-    except Exception as e:
-        print("WATCH DIR ERROR:", str(e))
-        return None
-
-
-# =========================
-# CLASIFICARE STATUS EOD
-# =========================
-
 def classify_eod(eod):
-    # Citeste statusul din JSON-ul EOD si il transforma in OK / PROBLEM
     status = str(eod.get("status", "")).strip()
 
     if status in (
@@ -149,12 +131,7 @@ def classify_eod(eod):
     return "PROBLEM", status or "UNKNOWN"
 
 
-# =========================
-# INFORMATII SISTEM
-# =========================
-
 def get_os_info():
-    # Citeste numele sistemului de operare
     try:
         if os.path.exists("/etc/os-release"):
             with open("/etc/os-release", "r") as f:
@@ -169,18 +146,14 @@ def get_os_info():
 
 
 def get_uptime_seconds():
-    # Citeste de cat timp este pornit serverul
     try:
         with open("/proc/uptime", "r") as f:
             return int(float(f.read().split()[0]))
-
     except Exception:
         return None
 
 
 def get_cpu_usage_percent():
-    # Calculeaza procentul real de utilizare CPU
-    # Citim /proc/stat de doua ori, la diferenta de 1 secunda
     try:
         with open("/proc/stat", "r") as f:
             line1 = f.readline()
@@ -206,7 +179,6 @@ def get_cpu_usage_percent():
             return 0.0
 
         usage = 100.0 * (1.0 - (idle_delta / total_delta))
-
         return round(usage, 1)
 
     except Exception as e:
@@ -215,7 +187,6 @@ def get_cpu_usage_percent():
 
 
 def get_ram_info():
-    # Citeste RAM total, RAM folosit si procent RAM
     try:
         mem = {}
 
@@ -237,7 +208,6 @@ def get_ram_info():
         total_kb = mem.get("MemTotal")
         available_kb = mem.get("MemAvailable")
 
-        # Pe Linux mai vechi MemAvailable poate lipsi
         if available_kb is None:
             free_kb = mem.get("MemFree", 0)
             buffers_kb = mem.get("Buffers", 0)
@@ -261,7 +231,6 @@ def get_ram_info():
 
 
 def get_disk_info():
-    # Calculeaza disk total, disk folosit si procent disk pentru /
     try:
         st = os.statvfs(DISK_PATH)
 
@@ -280,12 +249,57 @@ def get_disk_info():
         return None, None, None
 
 
-# =========================
-# HEALTH METRICS
-# =========================
+def run_cmd_timeout(cmd, timeout_sec=3):
+    try:
+        p = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT
+        )
+
+        start = time.time()
+
+        while True:
+            if p.poll() is not None:
+                out = p.stdout.read()
+
+                if not isinstance(out, str):
+                    out = out.decode("utf-8", "ignore")
+
+                return out.strip()
+
+            if time.time() - start > timeout_sec:
+                try:
+                    p.kill()
+                except Exception:
+                    pass
+
+                return "timeout"
+
+            time.sleep(0.1)
+
+    except Exception:
+        return "unknown"
+
+
+def get_services_status():
+    services = {}
+
+    for service in SERVICES_TO_CHECK:
+        status = run_cmd_timeout(
+            ["systemctl", "is-active", service],
+            timeout_sec=3
+        )
+
+        if not status:
+            status = "unknown"
+
+        services[service] = status
+
+    return services
+
 
 def get_health_metrics():
-    # Aduna toate informatiile de sistem intr-un dictionar
     ram_total_mb, ram_used_mb, ram_percent = get_ram_info()
     disk_total_gb, disk_used_gb, disk_percent = get_disk_info()
 
@@ -294,35 +308,45 @@ def get_health_metrics():
         "agent_version": AGENT_VERSION,
         "os_info": get_os_info(),
         "uptime_seconds": get_uptime_seconds(),
-        "cpu_load_1m": get_cpu_usage_percent(),  # aici trimitem CPU %
+        "cpu_load_1m": get_cpu_usage_percent(),
         "ram_total_mb": ram_total_mb,
         "ram_used_mb": ram_used_mb,
         "ram_percent": ram_percent,
         "disk_total_gb": disk_total_gb,
         "disk_used_gb": disk_used_gb,
         "disk_percent": disk_percent,
+        "services_status": get_services_status()
     }
 
 
-# =========================
-# CONSTRUIRE PAYLOAD
-# =========================
-
 def build_payload():
-    # Construieste JSON-ul care va fi trimis catre API
-
-    filename = find_latest_today_file()
+    filename, file_ts = find_latest_eod_file()
     schedule_time = read_schedule_time()
+    today = today_ymd()
     eod_date = dt.datetime.now().strftime("%Y-%m-%d")
 
-    # Daca nu exista fisier EOD pentru ziua curenta
+    latest_file_created_at = extract_eod_file_created_at(filename) if filename else None
+    is_today_file = file_ts is not None and file_ts.startswith(today)
+
     if not filename:
         payload = {
             "store_code": STORE_CODE,
             "status": "MISSING",
             "eod_file": "",
-            "message": "Nu exista fisier EOD",
+            "message": "Nu exista niciun fisier EOD",
             "eod_date": eod_date,
+            "eod_file_created_at": None,
+            "schedule_time": schedule_time,
+        }
+
+    elif not is_today_file:
+        payload = {
+            "store_code": STORE_CODE,
+            "status": "MISSING",
+            "eod_file": "",
+            "message": "Nu exista fisier EOD pentru ziua curenta",
+            "eod_date": eod_date,
+            "eod_file_created_at": latest_file_created_at,
             "schedule_time": schedule_time,
         }
 
@@ -330,11 +354,9 @@ def build_payload():
         path = os.path.join(WATCH_DIR, filename)
 
         try:
-            # Citim JSON-ul EOD
             with open(path, "r") as f:
                 eod = json.load(f)
 
-            # Transformam statusul intern in OK / PROBLEM
             status, message = classify_eod(eod)
 
         except Exception as e:
@@ -347,21 +369,15 @@ def build_payload():
             "eod_file": filename,
             "message": message,
             "eod_date": eod_date,
+            "eod_file_created_at": latest_file_created_at,
             "schedule_time": schedule_time,
         }
 
-    # Adaugam CPU / RAM / Disk / OS / hostname
     payload.update(get_health_metrics())
-
     return payload
 
 
-# =========================
-# TRIMITERE CATRE API
-# =========================
-
 def send_payload(payload):
-    # Trimite informatia catre API-ul central
     try:
         r = requests.post(
             API_URL,
@@ -379,6 +395,9 @@ def send_payload(payload):
         print("TIME:", dt.datetime.now())
         print("STATUS:", r.status_code)
         print("RESPONSE:", r.text)
+        print("EOD_FILE:", payload.get("eod_file"))
+        print("EOD_FILE_CREATED_AT:", payload.get("eod_file_created_at"))
+        print("SERVICES:", payload.get("services_status"))
         print("PAYLOAD:", payload)
         print("===================================")
         print("")
@@ -387,12 +406,7 @@ def send_payload(payload):
         print("API ERROR:", str(e))
 
 
-# =========================
-# LOOP PRINCIPAL
-# =========================
-
 def main_loop():
-    # Ruleaza permanent
     while True:
         try:
             payload = build_payload()
@@ -402,13 +416,8 @@ def main_loop():
             print("GENERAL ERROR:", str(e))
 
         print("Sleeping {} seconds...".format(CHECK_INTERVAL))
-
         time.sleep(CHECK_INTERVAL)
 
-
-# =========================
-# START PROGRAM
-# =========================
 
 if __name__ == "__main__":
     main_loop()
