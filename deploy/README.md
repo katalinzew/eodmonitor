@@ -76,7 +76,7 @@ chmod 700 /SmartId/agent/agent_updater.py
 On the central server, from the repository root:
 
 ```bash
-python tools/publish_agent_release.py --version 1.6.0 --agent agent_eod.py --activate
+python tools/publish_agent_release.py --version 1.8.0 --agent agent_eod.py --activate
 ```
 
 Stores check for updates every 24 hours. The updater backs up the current file,

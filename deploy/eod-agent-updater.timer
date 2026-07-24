@@ -4,7 +4,6 @@ Description=Check for EOD Monitor agent updates
 [Timer]
 OnBootSec=3min
 OnUnitActiveSec=24h
-Persistent=true
 Unit=eod-agent-updater.service
 
 [Install]

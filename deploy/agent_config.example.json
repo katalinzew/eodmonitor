@@ -3,5 +3,5 @@
   "api_key": "CHANGE_ME",
   "store_code": "CHANGE_ME",
   "agent_version": "1.5",
-  "allow_insecure_http": false
+  "allow_insecure_http": true
 }
