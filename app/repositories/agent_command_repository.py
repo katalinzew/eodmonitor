@@ -2,7 +2,7 @@ import datetime as dt
 
 from fastapi import HTTPException
 
-from app.core.config import SERVICE_CONTROL_STORES
+from app.core.config import SERVICE_CONTROL_STORES, store_feature_enabled
 from app.core.database import get_conn
 
 
@@ -16,7 +16,7 @@ ALLOWED_ACTIONS = {"start", "stop", "restart"}
 
 
 def create_service_command(store_code, payload):
-    if store_code not in SERVICE_CONTROL_STORES:
+    if not store_feature_enabled(store_code, SERVICE_CONTROL_STORES):
         raise HTTPException(status_code=403, detail="Service control is not enabled for this store")
     if payload.service_name not in ALLOWED_SERVICES:
         raise HTTPException(status_code=422, detail="Service is not allowed")
@@ -45,7 +45,7 @@ def create_service_command(store_code, payload):
 
 
 def claim_next_command(store_code):
-    if store_code not in SERVICE_CONTROL_STORES:
+    if not store_feature_enabled(store_code, SERVICE_CONTROL_STORES):
         return None
     with get_conn() as conn:
         with conn.cursor() as cur:

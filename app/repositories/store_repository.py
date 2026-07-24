@@ -5,6 +5,7 @@ from app.core.config import (
     LOG_COLLECTION_STORES,
     OFFLINE_AFTER_MINUTES,
     SERVICE_CONTROL_STORES,
+    store_feature_enabled,
 )
 from app.core.database import get_conn
 from app.repositories.dashboard_repository import DASHBOARD_SQL, rows_to_dicts
@@ -98,7 +99,11 @@ def get_store_details(store_code: str):
         "store": store,
         "events": events,
         "eod_history": eod_history,
-        "service_control_enabled": store_code in SERVICE_CONTROL_STORES,
-        "log_collection_enabled": store_code in LOG_COLLECTION_STORES,
-        "available_logs": available_logs() if store_code in LOG_COLLECTION_STORES else [],
+        "service_control_enabled": store_feature_enabled(store_code, SERVICE_CONTROL_STORES),
+        "log_collection_enabled": store_feature_enabled(store_code, LOG_COLLECTION_STORES),
+        "available_logs": (
+            available_logs()
+            if store_feature_enabled(store_code, LOG_COLLECTION_STORES)
+            else []
+        ),
     }

@@ -124,7 +124,7 @@ function renderStore(data) {
                     <div class="data-item"><span>Ultimul heartbeat</span><strong>${dateTime(store.last_heartbeat)}</strong></div>
                 </div></article>
                 <article class="store-card"><header class="card-head"><h2>System Resources</h2><small>Utilizare curentă</small></header><div class="resource-grid">${resourceMetric('CPU', store.cpu_load_1m, 70, 90)}${resourceMetric('RAM', store.ram_percent, 75, 90)}${resourceMetric('Disk', store.disk_percent, 80, 90)}</div></article>
-                <article class="store-card"><header class="card-head"><h2>Services</h2><small>${data.service_control_enabled ? 'Control activ pentru pilot' : `${Object.keys(services).length} raportate`}</small></header><div class="services-list">${renderServices(services, data.service_control_enabled)}</div><div class="command-feedback" id="commandFeedback" aria-live="polite"></div></article>
+                <article class="store-card"><header class="card-head"><h2>Services</h2><small>${data.service_control_enabled ? 'Control remote activ' : `${Object.keys(services).length} raportate`}</small></header><div class="services-list">${renderServices(services, data.service_control_enabled)}</div><div class="command-feedback" id="commandFeedback" aria-live="polite"></div></article>
                 <article class="store-card"><header class="card-head"><h2>Timeline</h2><small>${events.length} evenimente · cele mai noi primele</small></header><div class="timeline-scroll"><div class="timeline-list">${renderTimeline(events)}</div></div></article>
             </div>
             <aside class="store-column secondary-column">

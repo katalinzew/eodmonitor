@@ -3,7 +3,7 @@ import datetime as dt
 from fastapi import HTTPException
 from psycopg2.extras import Json
 
-from app.core.config import LOG_COLLECTION_STORES
+from app.core.config import LOG_COLLECTION_STORES, store_feature_enabled
 from app.core.database import get_conn
 
 
@@ -22,7 +22,7 @@ def available_logs():
 
 
 def create_log_collection(store_code, payload):
-    if store_code not in LOG_COLLECTION_STORES:
+    if not store_feature_enabled(store_code, LOG_COLLECTION_STORES):
         raise HTTPException(status_code=403, detail="Log collection is not enabled for this store")
     keys = list(dict.fromkeys(payload.log_keys))
     if not keys or any(key not in LOG_FILES for key in keys):
@@ -49,7 +49,7 @@ def create_log_collection(store_code, payload):
 
 
 def claim_log_collection(store_code):
-    if store_code not in LOG_COLLECTION_STORES:
+    if not store_feature_enabled(store_code, LOG_COLLECTION_STORES):
         return None
     now = dt.datetime.now()
     with get_conn() as conn:
