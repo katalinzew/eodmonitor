@@ -42,6 +42,7 @@ sh install.sh 5002
 Installerul:
 
 - validează serverul și Store Code-ul;
+- detectează automat Python 2 sau Python 3 folosit de agent;
 - face backup pentru agent și configurație;
 - creează `agent_config.json`;
 - instalează updaterul și unitățile systemd;

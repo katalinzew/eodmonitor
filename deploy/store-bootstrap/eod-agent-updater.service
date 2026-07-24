@@ -7,7 +7,7 @@ Wants=network-online.target
 Type=oneshot
 User=root
 WorkingDirectory=/SmartId/agent
-ExecStart=/usr/bin/python -u /SmartId/agent/agent_updater.py
+ExecStart=@PYTHON@ -u /SmartId/agent/agent_updater.py
 
 [Install]
 WantedBy=multi-user.target

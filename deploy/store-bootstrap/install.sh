@@ -3,7 +3,6 @@ set -eu
 
 BASE_DIR="/SmartId/agent"
 BACKUP_DIR="${BASE_DIR}/backup"
-PYTHON="/usr/bin/python"
 AGENT_SERVICE="eod-agent.service"
 UPDATER_SERVICE="eod-agent-updater.service"
 UPDATER_TIMER="eod-agent-updater.timer"
@@ -47,11 +46,6 @@ do
     fi
 done
 
-if [ ! -x "$PYTHON" ]; then
-    echo "ERROR: ${PYTHON} is not available."
-    exit 1
-fi
-
 if [ ! -f "${BASE_DIR}/agent_eod.py" ]; then
     echo "ERROR: Existing agent not found at ${BASE_DIR}/agent_eod.py"
     exit 1
@@ -62,10 +56,28 @@ if ! systemctl cat "$AGENT_SERVICE" 2>/dev/null | grep -q "${BASE_DIR}/agent_eod
     exit 1
 fi
 
-if ! "$PYTHON" -c "import requests" >/dev/null 2>&1; then
-    echo "ERROR: Python module 'requests' is not installed for ${PYTHON}."
+AGENT_PYTHON=$(
+    systemctl cat "$AGENT_SERVICE" 2>/dev/null \
+        | sed -n 's/^ExecStart=\([^ ]*\).*/\1/p' \
+        | head -1
+)
+PYTHON=""
+for candidate in "$AGENT_PYTHON" /usr/bin/python3 /usr/bin/python /usr/bin/python2 /usr/bin/python2.7
+do
+    if [ -n "$candidate" ] && [ -x "$candidate" ] \
+        && "$candidate" -c "import requests" >/dev/null 2>&1
+    then
+        PYTHON="$candidate"
+        break
+    fi
+done
+
+if [ -z "$PYTHON" ]; then
+    echo "ERROR: No Python interpreter with the 'requests' module was found."
     exit 1
 fi
+
+echo "Using Python interpreter: ${PYTHON}"
 
 mkdir -p "$BASE_DIR" "$BACKUP_DIR" "${BASE_DIR}/tmp"
 STAMP=$(date +%Y%m%d%H%M%S)
@@ -85,7 +97,9 @@ if [ -f "${BASE_DIR}/update_state.json" ]; then
 fi
 
 cp "${SCRIPT_DIR}/agent_updater.py" "${BASE_DIR}/agent_updater.py"
-cp "${SCRIPT_DIR}/${UPDATER_SERVICE}" "/etc/systemd/system/${UPDATER_SERVICE}"
+sed "s|@PYTHON@|${PYTHON}|g" \
+    "${SCRIPT_DIR}/${UPDATER_SERVICE}" \
+    > "/etc/systemd/system/${UPDATER_SERVICE}"
 cp "${SCRIPT_DIR}/${UPDATER_TIMER}" "/etc/systemd/system/${UPDATER_TIMER}"
 
 sed -i '/RandomizedDelaySec/d;/Persistent=true/d' "/etc/systemd/system/${UPDATER_TIMER}"
