@@ -8,7 +8,7 @@ UPDATER_SERVICE="eod-agent-updater.service"
 UPDATER_TIMER="eod-agent-updater.timer"
 SERVER_URL="${EOD_SERVER_URL:-http://10.143.252.2:8000}"
 API_KEY="${EOD_API_KEY:-test123}"
-EXPECTED_AGENT_VERSION="${EOD_EXPECTED_AGENT_VERSION:-1.8.0}"
+EXPECTED_AGENT_VERSION="${EOD_EXPECTED_AGENT_VERSION:-1.9.0}"
 
 usage() {
     echo "Usage: sh install.sh STORE_CODE"

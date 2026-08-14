@@ -21,6 +21,7 @@ def row_to_alert(row):
         "email_sent_at": row[9],
         "resolved": row[10],
         "resolved_at": row[11],
+        "details": row[12],
     }
 
 

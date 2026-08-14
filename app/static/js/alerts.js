@@ -1,4 +1,4 @@
-const ALERT_TYPES = ['ALL', 'AGENT_OFFLINE', 'SERVICE_DOWN', 'EOD_MISSING', 'HEALTH_WARNING'];
+const ALERT_TYPES = ['ALL', 'AGENT_OFFLINE', 'SERVICE_DOWN', 'EOD_MISSING', 'HEALTH_WARNING', 'POST_EOD_FILES_MISSING'];
 const STATUSES = ['ACTIVE', 'RESOLVED', 'ALL'];
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 const fmt = value => value === null || value === undefined || value === '' ? '-' : escapeHtml(value);
@@ -47,10 +47,11 @@ function renderAlerts(alerts = []) {
     document.getElementById('resultCount').textContent = `${alerts.length} ${alerts.length === 1 ? 'alertă' : 'alerte'}`;
     document.getElementById('alertsTable').innerHTML = alerts.map(alert => {
         const resolvedAt = alert.resolved_at || '';
+        const target = alert.details ? `${alert.target} · ${alert.details}` : alert.target;
         return `<tr class="${alert.resolved ? 'is-resolved' : 'is-active'}">
             <td><a class="store-link" href="/store/${encodeURIComponent(alert.store_code)}">${fmt(alert.store_code)}</a><div class="store-name" title="${fmt(alert.store_name)}">${fmt(alert.store_name)} · ${fmt(alert.host)}</div></td>
             <td>${alertBadge(alert.alert_type)}</td>
-            <td class="target-cell" title="${fmt(alert.target)}">${fmt(alert.target)}</td>
+            <td class="target-cell" title="${fmt(target)}">${fmt(target)}</td>
             <td>${dateTime(alert.first_seen_at)}</td>
             <td class="duration-cell" data-start="${fmt(alert.first_seen_at)}" data-end="${fmt(resolvedAt)}">${durationFrom(alert.first_seen_at, resolvedAt)}</td>
             <td>${alert.email_sent ? '<span class="email-badge sent">Sent</span>' : '<span class="email-badge pending">Pending</span>'}</td>

@@ -6,6 +6,7 @@ from psycopg2.extras import Json
 from app.core.database import get_conn
 from app.repositories.event_repository import insert_event
 from app.repositories.history_repository import save_eod_history
+from app.repositories.post_eod_file_repository import process_post_eod_file_check
 from app.repositories.stores_repository import ensure_store_exists, update_store_schedule
 from app.services.alert_service import process_alerts
 from app.services.event_service import (
@@ -265,6 +266,8 @@ def save_status(payload):
                 disk_percent=payload.disk_percent,
                 schedule_time=payload.schedule_time or stored_schedule_time,
             )
+
+            process_post_eod_file_check(cur, payload, now)
 
     return {
         "ok": True,

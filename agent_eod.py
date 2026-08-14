@@ -13,7 +13,7 @@ import datetime as dt
 
 BASE_DIR = "/SmartId/agent"
 CONFIG_PATH = os.path.join(BASE_DIR, "agent_config.json")
-AGENT_VERSION = "1.8.0"
+AGENT_VERSION = "1.9.0"
 
 
 def load_agent_config():
@@ -34,6 +34,8 @@ STORE_CODE = AGENT_CONFIG.get("store_code", "5034")
 WATCH_DIR = "/home/NCR/webfront-endofday/eodstatus"
 CONF_FILE = "/home/NCR/webfront-endofday/conf/scheduled_eod.properties"
 SCHEDULE_KEY = "eod.scheduler.start.time"
+POST_EOD_UPLOAD_DIR = "/home/tplinux/upload"
+POST_EOD_FILES = ("fdn_mdp", "vteplu", "vtesf")
 
 CHECK_INTERVAL = 60
 DISK_PATH = "/"
@@ -331,6 +333,32 @@ def get_health_metrics():
     }
 
 
+def get_post_eod_files():
+    files = {}
+
+    for name in POST_EOD_FILES:
+        path = os.path.join(POST_EOD_UPLOAD_DIR, name)
+        exists = os.path.isfile(path)
+        entry = {"exists": exists}
+
+        if name == "fdn_mdp" and exists:
+            try:
+                with open(path, "rb") as handle:
+                    prefix = handle.read(6)
+
+                if hasattr(prefix, "decode"):
+                    prefix = prefix.decode("ascii", "ignore")
+
+                entry["date_prefix"] = prefix
+            except Exception as error:
+                entry["date_prefix"] = None
+                entry["read_error"] = str(error)
+
+        files[name] = entry
+
+    return files
+
+
 def build_payload():
     filename, file_ts = find_latest_eod_file()
     schedule_time = read_schedule_time()
@@ -386,6 +414,7 @@ def build_payload():
         }
 
     payload.update(get_health_metrics())
+    payload["post_eod_files"] = get_post_eod_files()
     return payload
 
 

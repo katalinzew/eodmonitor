@@ -1,11 +1,14 @@
 import asyncio
 import datetime as dt
+from html import escape
 
 from app.core.config import ALERT_DELAY_MINUTES
 from app.core.database import get_conn
 from app.repositories.alert_repository import (
     get_pending_email_alerts,
+    get_pending_post_eod_email_alerts,
     mark_email_sent,
+    mark_email_sent_and_resolve,
 )
 from app.services.mail_service import send_email
 from app.services.status_service import get_eod_alert_due_at, is_eod_alert_due
@@ -163,6 +166,102 @@ def build_alert_email(alert):
 
     return subject, html_body, text_body
 
+
+def build_post_eod_alert_email(alert):
+    (
+        alert_id,
+        store_code,
+        store_name,
+        host,
+        alert_type,
+        target,
+        first_seen_at,
+        last_seen_at,
+        email_sent,
+        resolved,
+        resolved_at,
+        eod_date,
+        checked_at,
+        details,
+        email_due_at,
+    ) = alert
+
+    store_label = "{0} - {1}".format(store_code, store_name or "-")
+    state_label = "Resolved" if resolved else "Active at 06:00"
+    state_detail = (
+        "Resolved at {0}".format(resolved_at)
+        if resolved and resolved_at
+        else "Detected issue was still active when the email was prepared"
+    )
+    subject = "[EOD Monitor] Post-EOD files - {0} - EOD {1}".format(
+        store_code,
+        eod_date,
+    )
+
+    text_body = (
+        "EOD Monitor - Post-EOD file validation\n\n"
+        "Store: {0}\n"
+        "Host: {1}\n"
+        "EOD business date: {2}\n"
+        "Checked at: {3}\n"
+        "Problems: {4}\n"
+        "Status at email time: {5}\n"
+        "{6}\n"
+    ).format(
+        store_label,
+        host or "-",
+        eod_date,
+        checked_at,
+        details,
+        state_label,
+        state_detail,
+    )
+
+    html_body = """
+    <html>
+    <body style="margin:0;padding:0;background:#070b14;font-family:Arial,sans-serif;color:#e5eefb;">
+        <div style="max-width:640px;margin:0 auto;padding:18px;background:#07111f;">
+            <div style="background:#0f172a;border:1px solid #263247;border-radius:18px;overflow:hidden;">
+                <div style="padding:18px 22px;border-bottom:1px solid #263247;">
+                    <div style="font-size:22px;font-weight:900;color:#ffffff;">EOD Monitor</div>
+                    <div style="font-size:13px;color:#94a3b8;margin-top:3px;">Post-EOD file validation</div>
+                </div>
+                <div style="padding:22px;">
+                    <div style="display:inline-block;padding:6px 11px;border-radius:999px;background:#3b1620;border:1px solid #7f1d2d;color:#fecaca;font-size:11px;font-weight:900;">
+                        ISSUE DETECTED AFTER EOD
+                    </div>
+                    <h2 style="margin:16px 0 6px;font-size:22px;color:#ffffff;">Store {store_code}</h2>
+                    <p style="margin:0 0 18px;color:#cbd5e1;font-size:14px;">
+                        Validation failed five minutes after EOD completion.
+                    </p>
+                    <table style="width:100%;border-collapse:collapse;background:#080f1f;border:1px solid #263247;font-size:13px;">
+                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;width:38%;">Store</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid #263247;">{store_label}</td></tr>
+                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">Host</td><td style="padding:11px 13px;color:#e0f2fe;font-weight:800;border-bottom:1px solid #263247;">{host}</td></tr>
+                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">EOD date</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid #263247;">{eod_date}</td></tr>
+                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">Checked at</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid #263247;">{checked_at}</td></tr>
+                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">Problems</td><td style="padding:11px 13px;color:#fecaca;font-weight:900;border-bottom:1px solid #263247;">{details}</td></tr>
+                        <tr><td style="padding:11px 13px;color:#94a3b8;">Status</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;">{state_label}</td></tr>
+                    </table>
+                    <div style="margin-top:16px;padding:12px 14px;border-radius:14px;background:#0c2c3b;border:1px solid #155e75;color:#bae6fd;font-size:12px;">
+                        This email reports the issue detected during the previous EOD shift. The alert is closed automatically after successful delivery.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """.format(
+        store_code=escape(str(store_code)),
+        store_label=escape(store_label),
+        host=escape(str(host or "-")),
+        eod_date=escape(str(eod_date)),
+        checked_at=escape(str(checked_at)),
+        details=escape(str(details or "-")),
+        state_label=escape(state_label),
+    )
+
+    return subject, html_body, text_body
+
 def dispatch_alert_emails_once():
     now = dt.datetime.now()
     sent_count = 0
@@ -185,6 +284,23 @@ def dispatch_alert_emails_once():
                 )
 
                 mark_email_sent(cur, alert_id, now)
+                sent_count += 1
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            post_eod_alerts = get_pending_post_eod_email_alerts(cur, now)
+
+            for alert in post_eod_alerts:
+                alert_id = alert[0]
+                subject, html_body, text_body = build_post_eod_alert_email(alert)
+
+                send_email(
+                    subject=subject,
+                    html_body=html_body,
+                    text_body=text_body,
+                )
+
+                mark_email_sent_and_resolve(cur, alert_id, now)
                 sent_count += 1
 
     return sent_count

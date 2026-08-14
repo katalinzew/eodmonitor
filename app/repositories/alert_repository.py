@@ -145,6 +145,24 @@ def mark_email_sent(cur, alert_id, sent_at):
     )
 
 
+def mark_email_sent_and_resolve(cur, alert_id, sent_at):
+    cur.execute(
+        """
+        UPDATE alert_state
+        SET email_sent = true,
+            email_sent_at = %s,
+            resolved = true,
+            resolved_at = COALESCE(resolved_at, %s),
+            last_seen_at = CASE
+                WHEN resolved THEN last_seen_at
+                ELSE %s
+            END
+        WHERE id = %s
+        """,
+        (sent_at, sent_at, sent_at, alert_id),
+    )
+
+
 def get_pending_email_alerts(cur):
     cur.execute(
         """
@@ -170,6 +188,41 @@ def get_pending_email_alerts(cur):
 
     return cur.fetchall()
 
+
+def get_pending_post_eod_email_alerts(cur, now):
+    cur.execute(
+        """
+        SELECT
+            a.id,
+            a.store_code,
+            s.store_name,
+            s.host,
+            a.alert_type,
+            a.target,
+            a.first_seen_at,
+            a.last_seen_at,
+            a.email_sent,
+            a.resolved,
+            a.resolved_at,
+            c.eod_date,
+            c.checked_at,
+            c.details,
+            c.email_due_at
+        FROM post_eod_file_checks c
+        JOIN alert_state a
+            ON a.id = c.alert_id
+        LEFT JOIN stores s
+            ON s.store_code = a.store_code
+        WHERE c.passed = false
+          AND c.email_due_at <= %s
+          AND a.email_sent = false
+        ORDER BY c.email_due_at ASC, a.id ASC
+        """,
+        (now,),
+    )
+
+    return cur.fetchall()
+
 def get_alerts(cur, status_filter="ACTIVE", alert_type=None, search=None):
     query = """
         SELECT
@@ -184,10 +237,13 @@ def get_alerts(cur, status_filter="ACTIVE", alert_type=None, search=None):
             a.email_sent,
             a.email_sent_at,
             a.resolved,
-            a.resolved_at
+            a.resolved_at,
+            c.details
         FROM alert_state a
         LEFT JOIN stores s
             ON s.store_code = a.store_code
+        LEFT JOIN post_eod_file_checks c
+            ON c.alert_id = a.id
         WHERE 1 = 1
     """
 

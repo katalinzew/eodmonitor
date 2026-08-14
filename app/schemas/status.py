@@ -24,3 +24,4 @@ class StatusPayload(BaseModel):
     disk_used_gb: float = None
     disk_percent: float = None
     services_status: dict = None
+    post_eod_files: dict = None

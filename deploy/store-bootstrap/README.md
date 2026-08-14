@@ -64,12 +64,12 @@ journalctl -u eod-agent.service -n 60 --no-pager
 Rezultatul așteptat:
 
 ```text
-AGENT_VERSION = "1.8.0"
+AGENT_VERSION = "1.9.0"
 eod-agent.service: active (running)
 eod-agent-updater.timer: active (waiting)
 ```
 
-Installerul se oprește dacă nu găsește exact versiunea `1.8.0`. Acest lucru
+Installerul se oprește dacă nu găsește exact versiunea `1.9.0`. Acest lucru
 protejează împotriva unui Store Code inexistent, inactiv sau configurat greșit.
 
 ## Configurație
