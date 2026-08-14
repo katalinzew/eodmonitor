@@ -187,25 +187,25 @@ def build_post_eod_alert_email(alert):
     ) = alert
 
     store_label = "{0} - {1}".format(store_code, store_name or "-")
-    state_label = "Resolved" if resolved else "Active at 06:00"
+    state_label = "Rezolvată" if resolved else "Activă la ora trimiterii"
     state_detail = (
-        "Resolved at {0}".format(resolved_at)
+        "Rezolvată la {0}".format(resolved_at)
         if resolved and resolved_at
-        else "Detected issue was still active when the email was prepared"
+        else "Problema detectată era încă activă la pregătirea emailului"
     )
-    subject = "[EOD Monitor] Post-EOD files - {0} - EOD {1}".format(
+    subject = "[EOD Monitor] Fișiere de vânzări - {0} - EOD {1}".format(
         store_code,
         eod_date,
     )
 
     text_body = (
-        "EOD Monitor - Post-EOD file validation\n\n"
-        "Store: {0}\n"
+        "EOD Monitor - Verificare fișiere de vânzări\n\n"
+        "Magazin: {0}\n"
         "Host: {1}\n"
-        "EOD business date: {2}\n"
-        "Checked at: {3}\n"
-        "Problems: {4}\n"
-        "Status at email time: {5}\n"
+        "Data EOD: {2}\n"
+        "Verificat la: {3}\n"
+        "Probleme: {4}\n"
+        "Status la trimiterea emailului: {5}\n"
         "{6}\n"
     ).format(
         store_label,
@@ -224,26 +224,26 @@ def build_post_eod_alert_email(alert):
             <div style="background:#0f172a;border:1px solid #263247;border-radius:18px;overflow:hidden;">
                 <div style="padding:18px 22px;border-bottom:1px solid #263247;">
                     <div style="font-size:22px;font-weight:900;color:#ffffff;">EOD Monitor</div>
-                    <div style="font-size:13px;color:#94a3b8;margin-top:3px;">Post-EOD file validation</div>
+                    <div style="font-size:13px;color:#94a3b8;margin-top:3px;">Verificare fișiere de vânzări</div>
                 </div>
                 <div style="padding:22px;">
                     <div style="display:inline-block;padding:6px 11px;border-radius:999px;background:#3b1620;border:1px solid #7f1d2d;color:#fecaca;font-size:11px;font-weight:900;">
-                        ISSUE DETECTED AFTER EOD
+                        PROBLEMĂ DETECTATĂ DUPĂ EOD
                     </div>
-                    <h2 style="margin:16px 0 6px;font-size:22px;color:#ffffff;">Store {store_code}</h2>
+                    <h2 style="margin:16px 0 6px;font-size:22px;color:#ffffff;">Magazin {store_code}</h2>
                     <p style="margin:0 0 18px;color:#cbd5e1;font-size:14px;">
-                        Validation failed five minutes after EOD completion.
+                        Validarea fișierelor de vânzări a eșuat la 5 minute după finalizarea EOD.
                     </p>
                     <table style="width:100%;border-collapse:collapse;background:#080f1f;border:1px solid #263247;font-size:13px;">
-                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;width:38%;">Store</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid #263247;">{store_label}</td></tr>
+                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;width:38%;">Magazin</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid #263247;">{store_label}</td></tr>
                         <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">Host</td><td style="padding:11px 13px;color:#e0f2fe;font-weight:800;border-bottom:1px solid #263247;">{host}</td></tr>
-                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">EOD date</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid #263247;">{eod_date}</td></tr>
-                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">Checked at</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid #263247;">{checked_at}</td></tr>
-                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">Problems</td><td style="padding:11px 13px;color:#fecaca;font-weight:900;border-bottom:1px solid #263247;">{details}</td></tr>
+                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">Data EOD</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid #263247;">{eod_date}</td></tr>
+                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">Verificat la</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;border-bottom:1px solid #263247;">{checked_at}</td></tr>
+                        <tr><td style="padding:11px 13px;color:#94a3b8;border-bottom:1px solid #263247;">Probleme</td><td style="padding:11px 13px;color:#fecaca;font-weight:900;border-bottom:1px solid #263247;">{details}</td></tr>
                         <tr><td style="padding:11px 13px;color:#94a3b8;">Status</td><td style="padding:11px 13px;color:#ffffff;font-weight:800;">{state_label}</td></tr>
                     </table>
                     <div style="margin-top:16px;padding:12px 14px;border-radius:14px;background:#0c2c3b;border:1px solid #155e75;color:#bae6fd;font-size:12px;">
-                        This email reports the issue detected during the previous EOD shift. The alert is closed automatically after successful delivery.
+                        Acest email raportează problema detectată după EOD. Alerta este închisă automat după trimiterea reușită a emailului.
                     </div>
                 </div>
             </div>

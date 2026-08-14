@@ -1,4 +1,5 @@
 const ALERT_TYPES = ['ALL', 'AGENT_OFFLINE', 'SERVICE_DOWN', 'EOD_MISSING', 'HEALTH_WARNING', 'POST_EOD_FILES_MISSING'];
+const ALERT_LABELS = { POST_EOD_FILES_MISSING: 'FIȘIERE DE VÂNZĂRI' };
 const STATUSES = ['ACTIVE', 'RESOLVED', 'ALL'];
 const escapeHtml = value => String(value ?? '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char]));
 const fmt = value => value === null || value === undefined || value === '' ? '-' : escapeHtml(value);
@@ -30,7 +31,8 @@ function durationFrom(value, resolvedAt) {
 
 function alertBadge(type) {
     const safeType = ALERT_TYPES.includes(type) ? type : '';
-    return `<span class="alert-badge ${safeType}">${fmt(type).replaceAll('_', ' ')}</span>`;
+    const label = ALERT_LABELS[type] || String(type || '').replaceAll('_', ' ');
+    return `<span class="alert-badge ${safeType}">${fmt(label)}</span>`;
 }
 
 function renderSummary(summary = {}) {

@@ -74,12 +74,12 @@ def evaluate_post_eod_files(reported_files, eod_date):
     fdn_prefix = str(fdn_prefix).strip() if fdn_prefix is not None else ""
 
     if not fdn_exists:
-        problems.append("fdn_mdp lipseste")
+        problems.append("fdn_mdp lipsește")
     elif not re.match(r"^[0-9]{6}$", fdn_prefix):
-        problems.append("fdn_mdp nu contine o data DDMMYY valida")
+        problems.append("fdn_mdp nu conține o dată DDMMYY validă")
     elif fdn_prefix != expected_prefix:
         problems.append(
-            "fdn_mdp are data {0}, asteptat {1}".format(
+            "fdn_mdp are data {0}, așteptat {1}".format(
                 fdn_prefix,
                 expected_prefix,
             )
@@ -97,14 +97,14 @@ def evaluate_post_eod_files(reported_files, eod_date):
         exists = _file_entry(reported_files, name).get("exists") is True
         file_results[name] = {"exists": exists}
         if not exists:
-            problems.append("{0} lipseste".format(name))
+            problems.append("{0} lipsește".format(name))
 
     return {
         "passed": not problems,
         "business_date": business_date.isoformat(),
         "files": file_results,
         "problems": problems,
-        "details": "; ".join(problems) if problems else "Toate fisierele sunt valide",
+        "details": "; ".join(problems) if problems else "Toate fișierele sunt valide",
     }
 
 

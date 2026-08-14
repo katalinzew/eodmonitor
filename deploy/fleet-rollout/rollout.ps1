@@ -144,7 +144,7 @@ try {
             @(
                 "lcd `"$bundlePath`""
                 "cd /SmartId/agent/tmp/store-bootstrap"
-                "put *"
+                "put -o *"
                 "exit"
             ) | Set-Content -LiteralPath $commandFile -Encoding ASCII
             try {
