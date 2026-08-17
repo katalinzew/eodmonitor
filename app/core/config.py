@@ -12,6 +12,10 @@ LOG_COLLECTION_STORES = {
     for code in os.getenv("EOD_LOG_COLLECTION_STORES", "*").split(",")
     if code.strip()
 }
+POST_EOD_FILE_CHECKS_ENABLED = os.getenv(
+    "EOD_POST_EOD_FILE_CHECKS_ENABLED",
+    "false",
+).strip().lower() in {"1", "true", "yes", "on"}
 MAX_LOG_ARCHIVE_BYTES = int(os.getenv("EOD_MAX_LOG_ARCHIVE_BYTES", str(20 * 1024 * 1024)))
 
 

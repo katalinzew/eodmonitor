@@ -2,7 +2,7 @@ import asyncio
 import datetime as dt
 from html import escape
 
-from app.core.config import ALERT_DELAY_MINUTES
+from app.core.config import ALERT_DELAY_MINUTES, POST_EOD_FILE_CHECKS_ENABLED
 from app.core.database import get_conn
 from app.repositories.alert_repository import (
     get_pending_email_alerts,
@@ -286,22 +286,23 @@ def dispatch_alert_emails_once():
                 mark_email_sent(cur, alert_id, now)
                 sent_count += 1
 
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            post_eod_alerts = get_pending_post_eod_email_alerts(cur, now)
+    if POST_EOD_FILE_CHECKS_ENABLED:
+        with get_conn() as conn:
+            with conn.cursor() as cur:
+                post_eod_alerts = get_pending_post_eod_email_alerts(cur, now)
 
-            for alert in post_eod_alerts:
-                alert_id = alert[0]
-                subject, html_body, text_body = build_post_eod_alert_email(alert)
+                for alert in post_eod_alerts:
+                    alert_id = alert[0]
+                    subject, html_body, text_body = build_post_eod_alert_email(alert)
 
-                send_email(
-                    subject=subject,
-                    html_body=html_body,
-                    text_body=text_body,
-                )
+                    send_email(
+                        subject=subject,
+                        html_body=html_body,
+                        text_body=text_body,
+                    )
 
-                mark_email_sent_and_resolve(cur, alert_id, now)
-                sent_count += 1
+                    mark_email_sent_and_resolve(cur, alert_id, now)
+                    sent_count += 1
 
     return sent_count
 

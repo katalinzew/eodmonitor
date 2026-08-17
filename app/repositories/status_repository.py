@@ -3,6 +3,7 @@ import datetime as dt
 from fastapi import HTTPException
 from psycopg2.extras import Json
 
+from app.core.config import POST_EOD_FILE_CHECKS_ENABLED
 from app.core.database import get_conn
 from app.repositories.event_repository import insert_event
 from app.repositories.history_repository import save_eod_history
@@ -267,7 +268,8 @@ def save_status(payload):
                 schedule_time=payload.schedule_time or stored_schedule_time,
             )
 
-            process_post_eod_file_check(cur, payload, now)
+            if POST_EOD_FILE_CHECKS_ENABLED:
+                process_post_eod_file_check(cur, payload, now)
 
     return {
         "ok": True,
