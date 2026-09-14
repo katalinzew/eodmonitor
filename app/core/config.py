@@ -49,5 +49,6 @@ SMTP_CONFIG = {
     "to": [
         "SupportSoftware@smartid.ro",
         "Valentin.SURUGIU@smartid.ro",
+        "Andreea.IANOS@smartid.ro",
     ],
 }
